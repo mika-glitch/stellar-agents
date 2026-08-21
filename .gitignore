@@ -1,0 +1,15 @@
+# CMake Build-Verzeichnisse und Cache
+build/
+.cmake/
+CMakeCache.txt
+CMakeFiles/
+CMakeSettings.json
+
+# Compiler-Ausgaben und IDE-Müll
+*.obj
+*.exe
+*.pdb
+*.ilk
+*.lib
+.vs/
+.vscode/
