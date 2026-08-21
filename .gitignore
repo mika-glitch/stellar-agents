@@ -4,6 +4,7 @@ build/
 CMakeCache.txt
 CMakeFiles/
 CMakeSettings.json
+CMakePresets.json
 
 # Compiler-Ausgaben und IDE-Müll
 *.obj

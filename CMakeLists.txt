@@ -14,7 +14,8 @@ add_subdirectory(ext/raylib)
 set(SOURCES
     src/main.cpp
     src/black_hole.cpp
-    src/relativity.cpp 
+    src/relativity.cpp
+    src/universe.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
