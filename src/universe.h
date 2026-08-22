@@ -3,43 +3,61 @@
 #include "black_hole.h"
 #include <vector>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
 
 // High-performance cache-aligned layout for massively parallel simulation passes
 struct Asteroid {
-    Vector3 position;   // 12 bytes - SIMD-friendly continuous alignment
-    Vector3 velocity;   // 12 bytes - Linear momentum vectors
-    Color color;        // 4 bytes  - Render color profile
-    bool active;        // 1 byte   - Lifecycle state flag for thread pruning
+    Vector3 position;
+    Vector3 velocity;
+    Color color;
+    bool active;
 };
 
 // Canonical Star Citizen lore planetary system coordinates (Tamsa System baseline)
 struct Planet {
-    Vector3 position;   // 12 bytes - Orbital world coordinates
-    Vector3 velocity;   // 12 bytes - Keplerian velocity metrics
-    float radius;       // 4 bytes  - Physical scale bounds
-    Color color;        // 4 bytes  - Mesh/Sphere coloration
-    const char* name;   // 8 bytes  - UI HUD localization anchor text
+    Vector3 position;
+    Vector3 velocity;
+    float radius;
+    Color color;
+    const char* name;
 };
 
 // Main simulation pipeline coordinator designed to scale across high-core-count processors
 class Universe {
 private:
-    const BlackHole& blackHole;         // Central singularity mass modifier
-    std::vector<Asteroid> asteroids;    // Packed Structure of Arrays (SoA) layout for hot-loop cache locality
-    std::vector<Planet> planets;        // Tracked planetary instances orbiting the core
+    const BlackHole& blackHole;
+    std::vector<Asteroid> asteroids;
+    std::vector<Planet> planets;
 
-    int maxAsteroids;                   // Hard memory allocation boundary limits
-    int currentActiveCount;             // Dynamically dispatched worker iteration count
-    int livingAsteroidCount;            // Verified survival count post-event-horizon pass
-    unsigned int numThreads;            // Evaluated physical/logical core layout footprint
+    int maxAsteroids;
+    int currentActiveCount;
+    int livingAsteroidCount;
+    unsigned int numThreads;
+
+    // --- CIG Static Worker Pool Synchronization States ---
+    std::vector<std::thread> workerPool;
+    std::mutex poolMutex;
+    std::condition_variable cvStart;
+    std::condition_variable cvEnd;
+    std::atomic<bool> stopPool{ false };
+    std::atomic<int> activeWorkers{ 0 };
+    float currentDeltaTime{ 0.0f };
+    std::atomic<int> completedTasks{ 0 };
+    int currentFrameSignal{ 0 };
+
+    // --- CIG High-Performance Dynamic CPU Buffers ---
+    mutable Vector3 currentCameraPos{ 0.0f, 0.0f, 0.0f };
+    mutable std::vector<float> vertexBuffer;
 
     // Concurrent thread worker task executing slicing operations on dense memory arrays
-    void ProcessAsteroidChunk(size_t startIdx, size_t endIdx, float dt);
+    void WorkerLoop(unsigned int threadId);
 
 public:
     // Lifecycle setup establishing memory reservations and system configurations
     Universe(const BlackHole& hole, int maxParticles);
-    ~Universe() = default;
+    ~Universe();
 
     // Core processing and integration routines executed every frame step
     void Update(float dt);
