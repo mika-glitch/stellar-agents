@@ -26,7 +26,7 @@ int main() {
     // Stack-allocated lifecycle ordering ensures that the 'tamsaSystem' thread pool 
     // winds down safely via its destructor BEFORE 'tamsaKharesh' memory is unallocated.
     BlackHole tamsaKharesh(Vector3{ 0.0f, 0.0f, 0.0f }, 600.0f, 1.5f);
-    Universe tamsaSystem(tamsaKharesh, 150000);
+    Universe tamsaSystem(tamsaKharesh, 1500000);
 
     DisableCursor();
 

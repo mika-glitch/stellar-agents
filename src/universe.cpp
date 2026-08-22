@@ -9,8 +9,8 @@
 Universe::Universe(const BlackHole& hole, int maxParticles)
     : blackHole(hole)
     , maxAsteroids(maxParticles)
-    , currentActiveCount(40000)
-    , livingAsteroidCount(40000)
+    , currentActiveCount(50000)
+    , livingAsteroidCount(50000)
     , currentFrameSignal(0)
     , currentDeltaTime(0.0f)
 {
@@ -164,19 +164,32 @@ void Universe::Draw3D(Camera3D camera) const {
     rlDisableDepthTest();
     BeginMode3D(camera);
 
-    // Dynamic thread cache feed mechanism
     currentCameraPos = camera.position;
 
-    // Pure dynamic streaming render loop bypassing pipeline calculation blocks entirely
-    for (int i = 0; i < currentActiveCount; ++i) {
-        if (asteroids[i].active) {
-            size_t vIdx = static_cast<size_t>(i) * 3;
-            Vector3 cachedApparentPos = { vertexBuffer[vIdx], vertexBuffer[vIdx + 1], vertexBuffer[vIdx + 2] };
-            DrawPoint3D(cachedApparentPos, asteroids[i].color);
+    int totalParticles = currentActiveCount;
+    if (totalParticles > 0) {
+        // Clear Raylib's queue and unlock raw driver access
+        rlDrawRenderBatchActive();
+
+        // 1 SINGLE UNIFIED HARDWARE DRAW CALL
+        rlBegin(RL_LINES);
+        for (int i = 0; i < totalParticles; ++i) {
+            if (asteroids[i].active) {
+                size_t vIdx = static_cast<size_t>(i) * 3;
+                Color c = asteroids[i].color;
+
+                rlColor4ub(c.r, c.g, c.b, c.a);
+                rlVertex3f(vertexBuffer[vIdx], vertexBuffer[vIdx + 1], vertexBuffer[vIdx + 2]);
+                rlVertex3f(vertexBuffer[vIdx] + 0.001f, vertexBuffer[vIdx + 1], vertexBuffer[vIdx + 2]);
+            }
         }
+        rlEnd();
     }
 
-    // Direct standalone planetary updates
+    EndMode3D();
+
+    // Standard rendering for planets
+    BeginMode3D(camera);
     const Vector3 holePos = blackHole.GetPosition();
     const float holeMass = blackHole.GetMass();
     const float holeHorizon = blackHole.GetEventHorizon();
@@ -184,10 +197,11 @@ void Universe::Draw3D(Camera3D camera) const {
         Vector3 apparentPos = Relativity::GetApparentPosition(planet.position, camera.position, holePos, holeMass, holeHorizon);
         DrawSphere(apparentPos, planet.radius, planet.color);
     }
-
     EndMode3D();
+
     rlEnableDepthTest();
 }
+
 
 void Universe::DrawHUD(Camera3D camera) const {
     const Vector3 holePos = blackHole.GetPosition();
