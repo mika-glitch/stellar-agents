@@ -64,6 +64,6 @@ namespace godot_hpc { // Clean explicit namespace mapping to block symbol pollut
         [[nodiscard]] uint64_t get_active_survivors() const noexcept;
     };
 
-} // namespace godot_hpc
+} // namespace sterllar_agents
 
 #endif // UNIVERSE_H
