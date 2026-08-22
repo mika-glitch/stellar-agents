@@ -1,26 +1,25 @@
-#pragma once
+#ifndef RELATIVITY_H
+#define RELATIVITY_H
+
 #include "raylib.h"
 
-namespace Relativity {
+namespace godot_hpc {
 
-    // FULL SIGNATURE
-    // Calculates the light deflection using all physical parameters of the singularity.
-    [[nodiscard]] Vector3 GetApparentPosition(
-        Vector3 realPos,
-        Vector3 camPos,
-        Vector3 holePos,
-        float mass,
-        float eventHorizon
-    ) noexcept;
+    class Relativity final {
+    public:
+        // Enforces zero-allocation utility architectures by deleting constructors
+        Relativity() = delete;
+        ~Relativity() = delete;
 
-    // OVERLOAD FOR BACKWARD COMPATIBILITY
-    // Used by universe.cpp when only object position and camera position are provided.
-    // Automatically drops deflection or uses standardized static baseline values.
-    [[nodiscard]] inline Vector3 GetApparentPosition(Vector3 realPos, Vector3 camPos) noexcept {
-        // CIG Performance-Pass: If no black hole parameters are supplied, 
-        // light travels linearly without gravitational bending.
-        [[maybe_unused]] Vector3 fallbackModifier = camPos;
-        return realPos;
-    }
+        // Standardized Einstein lensing projection pass running with strict exception-free modifiers
+        [[nodiscard]] static Vector3 GetApparentPosition(
+            Vector3 realPos,
+            Vector3 camPos,
+            Vector3 holePos,
+            float mass,
+            float eventHorizon) noexcept;
+    };
 
-}
+} // namespace godot_hpc
+
+#endif // RELATIVITY_H

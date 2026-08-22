@@ -16,6 +16,7 @@ set(SOURCES
     src/black_hole.cpp
     src/relativity.cpp
     src/universe.cpp
+    src/fleet_system.cpp 
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})

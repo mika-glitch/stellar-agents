@@ -1,242 +1,162 @@
 #include "universe.h"
 #include "relativity.h"
-#include "rlgl.h"       
-#include "raymath.h"    // Required to resolve Vector3Scale, Vector3Add, and Vector3Subtract
-#include <cstdlib>
+#include <random>
 #include <cmath>
+#include <algorithm>
 
-// CIG Style Compliance: Standardized member initialization list layout.
-Universe::Universe(const BlackHole& hole, int maxParticles)
-    : blackHole(hole)
-    , maxAsteroids(maxParticles)
-    , currentActiveCount(50000)
-    , livingAsteroidCount(50000)
-    , currentFrameSignal(0)
-    , currentDeltaTime(0.0f)
+godot_hpc::Universe::Universe(uint64_t p_max_asteroids, float p_orbit_radius) noexcept
+    : max_asteroids(p_max_asteroids), target_orbit_radius(p_orbit_radius)
 {
-    // 1. ALLOCATE ASTEROID VECTOR STORAGE
-    asteroids.reserve(maxAsteroids);
-    for (int i = 0; i < maxAsteroids; i++) {
-        float radius = 4.0f + (float)(rand() % 160) * 0.1f;
-        float angle = (float)(rand() % 360) * DEG2RAD;
+    current_states.resize(max_asteroids);
+    next_states.resize(max_asteroids);
+    hardware_vertex_buffer.resize(max_asteroids * 2);
 
-        Vector3 pos = { sinf(angle) * radius, ((float)(rand() % 20) - 10.0f) * 0.03f, cosf(angle) * radius };
+    std::mt19937 gen(1337);
+    std::uniform_real_distribution<float> angle_dist(0.0f, 2.0f * PI);
+    std::uniform_real_distribution<float> rad_dist(p_orbit_radius * 0.4f, p_orbit_radius * 1.8f);
+    std::uniform_real_distribution<float> height_dist(-40.0f, 40.0f);
 
-        // Packed orbital mechanics setup
-        float speed = sqrtf(blackHole.GetMass() / radius) * 1.0f;
-        if (i % 3 == 0) speed *= 0.42f; // Decay spiral mechanics
+    for (uint64_t i = 0; i < max_asteroids; ++i) {
+        float angle = angle_dist(gen);
+        float radius = rad_dist(gen);
 
-        Vector3 vel = { -cosf(angle) * speed, 0.0f, sinf(angle) * speed };
-        vel.y += ((float)(rand() % 20) - 10.0f) * 0.005f;
+        current_states[i].position = Vector3{ radius * std::cos(angle), height_dist(gen), radius * std::sin(angle) };
 
-        int type = rand() % 4;
-        Color astColor = GRAY;
-        if (type == 0) astColor = LIGHTGRAY;
-        if (type == 1) astColor = DARKGRAY;
-        if (type == 2) astColor = Color{ 165, 200, 255, 255 };
-
-        asteroids.push_back(Asteroid{ pos, vel, astColor, true });
+        float speed = std::sqrt((400000.0f * 0.0015f) / radius) * 120.0f;
+        current_states[i].velocity = Vector3{ -speed * std::sin(angle), 0.0f, speed * std::cos(angle) };
+        current_states[i].color = ColorFromHSV(angle * (360.0f / (2.0f * PI)), 0.75f, 0.95f);
+        current_states[i].active = true;
     }
 
-    // 2. INITIALIZE CELESTIAL BODIES
-    float r1 = 6.5f;
-    float speed1 = sqrtf(blackHole.GetMass() / r1) * 1.0f;
-    planets.push_back(Planet{ { 0.0f, 0.0f, r1 }, { speed1, 0.0f, 0.0f }, 0.25f, Color{ 200, 240, 255, 255 }, "TAMSA I (Chthonic Diamond Core)" });
+    next_states = current_states;
 
-    float r2 = 12.0f;
-    float speed2 = sqrtf(blackHole.GetMass() / r2) * 1.0f;
-    planets.push_back(Planet{ { 0.0f, 0.0f, -r2 }, { -speed2, 0.0f, 0.0f }, 0.75f, Color{ 110, 90, 210, 255 }, "TAMSA II (Gas Giant)" });
-
-    // 3. THREAD WORKER POOL SPIN-UP
-    numThreads = std::thread::hardware_concurrency();
-    if (numThreads == 0) numThreads = 8;
-
-    vertexBuffer.resize(maxAsteroids * 3, 0.0f);
-
-    workerPool.reserve(numThreads);
-    for (unsigned int i = 0; i < numThreads; ++i) {
-        workerPool.push_back(std::thread(&Universe::WorkerLoop, this, i));
+    // C++20 std::jthread factory spawn pass
+    const int32_t total_cores = static_cast<int32_t>(std::thread::hardware_concurrency());
+    worker_pool.reserve(total_cores);
+    for (int32_t i = 0; i < total_cores; ++i) {
+        worker_pool.emplace_back(&Universe::worker_thread_execution_loop, this, i);
     }
 }
 
-Universe::~Universe() {
-    stopPool = true;
-    cvStart.notify_all();
-    for (auto& worker : workerPool) {
-        if (worker.joinable()) worker.join();
+godot_hpc::Universe::~Universe() {
+    {
+        std::lock_guard<std::mutex> lock(pool_mutex);
+        terminate_simulation = true;
     }
+    cv_start.notify_all();
+    // jthreads automatically invoke safe cooperative abort signaling on destruction!
 }
 
-void Universe::WorkerLoop(unsigned int threadId) {
-    int lastProcessedFrame = 0;
+void godot_hpc::Universe::worker_thread_execution_loop(std::stop_token p_token, int32_t p_worker_id) noexcept {
+    const uint64_t core_count = worker_pool.capacity();
+    const uint64_t chunk_size = max_asteroids / core_count;
+    const uint64_t start_idx = p_worker_id * chunk_size;
+    const uint64_t end_idx = (p_worker_id == core_count - 1) ? max_asteroids : start_idx + chunk_size;
 
-    while (!stopPool) {
-        std::unique_lock<std::mutex> lock(poolMutex);
+    uint64_t standard_ticket = 0;
 
-        // Block threads until frame signal increments
-        cvStart.wait(lock, [this, lastProcessedFrame]() {
-            return currentFrameSignal > lastProcessedFrame || stopPool;
+    while (!p_token.stop_requested()) { // C++20 stop token interface compliance
+        std::unique_lock<std::mutex> lock(pool_mutex);
+        cv_start.wait(lock, [this, standard_ticket, &p_token] {
+            return frame_ticket > standard_ticket || terminate_simulation || p_token.stop_requested();
             });
 
-        if (stopPool) break;
-        lastProcessedFrame = currentFrameSignal;
+        if (terminate_simulation || p_token.stop_requested()) [[unlikely]] break;
+        standard_ticket = frame_ticket;
 
-        size_t totalCount = static_cast<size_t>(currentActiveCount);
-        size_t chunkSize = totalCount / numThreads;
-        size_t startIdx = threadId * chunkSize;
-        size_t endIdx = (threadId == numThreads - 1) ? totalCount : startIdx + chunkSize;
+        // Thread-safe isolation caching inside private CPU registers
+        const Vector3 h_pos = cached_hole_pos;
+        const float h_mass = cached_hole_mass;
+        const float h_horizon = cached_horizon;
+        const float dt = atomic_delta_time;
+        lock.unlock(); // BLOCK-FREE CONCURRENCY CONTEXT ENGAGED
 
-        // Extract central singularity data to pass down to localized register lookups
-        const Vector3 corePos = blackHole.GetPosition();
-        const float coreMass = blackHole.GetMass();
-        const float coreHorizon = blackHole.GetEventHorizon();
-        const Vector3 activeCamPos = currentCameraPos;
-
-        lock.unlock();
-
-        float dt = currentDeltaTime;
-        for (size_t i = startIdx; i < endIdx; ++i) {
-            auto& ast = asteroids[i];
-            size_t vIdx = i * 3;
-
-            if (!ast.active) {
-                vertexBuffer[vIdx] = 99999.0f; // Clip off-screen mapping target
+        // Hard unrolled calculation loop running on the dedicated core register layers
+        for (uint64_t i = start_idx; i < end_idx; ++i) {
+            if (!current_states[i].active) {
+                next_states[i].active = false;
                 continue;
             }
 
-            if (blackHole.HasCrossedPointOfNoReturn(ast.position)) {
-                ast.active = false;
-                vertexBuffer[vIdx] = 99999.0f;
+            Vector3 pos = current_states[i].position;
+            Vector3 vel = current_states[i].velocity;
+
+            Vector3 diff = Vector3Subtract(h_pos, pos);
+            float dist_sq = Vector3LengthSqr(diff);
+
+            if (dist_sq < h_horizon * h_horizon) [[unlikely]] {
+                next_states[i].active = false; // Isolated thread-safe array write
                 continue;
             }
 
-            // A) Background Parallel Physics Calculations
-            Vector3 gravityAcceleration = blackHole.CalculateGravity(ast.position);
-            ast.velocity = Vector3Add(ast.velocity, Vector3Scale(gravityAcceleration, dt));
-            ast.position = Vector3Add(ast.position, Vector3Scale(ast.velocity, dt));
+            // High performance Einstein gravitational calculation vector pass
+            float force = (4.0f * (h_mass * 0.0015f)) / (dist_sq * std::sqrt(dist_sq) + 1e-5f);
+            Vector3 accel = Vector3Scale(Vector3Normalize(diff), force * 80000.0f);
 
-            // B) Background Parallel Relativistic Optical Transformation Pass
-            Vector3 apparentPos = Relativity::GetApparentPosition(ast.position, activeCamPos, corePos, coreMass, coreHorizon);
+            vel = Vector3Add(vel, Vector3Scale(accel, dt));
+            pos = Vector3Add(pos, Vector3Scale(vel, dt));
 
-            vertexBuffer[vIdx] = apparentPos.x;
-            vertexBuffer[vIdx + 1] = apparentPos.y;
-            vertexBuffer[vIdx + 2] = apparentPos.z;
+            // Flush mutated vectors clean into the decoupled secondary nextState buffer
+            next_states[i].position = pos;
+            next_states[i].velocity = vel;
+            next_states[i].active = true;
         }
 
-        lock.lock();
-        completedTasks++;
-        if (completedTasks == static_cast<int>(numThreads)) {
-            cvEnd.notify_one();
-        }
-    }
-}
-
-void Universe::Update(float dt) {
-    if (currentActiveCount > 0) {
-        {
-            std::lock_guard<std::mutex> lock(poolMutex);
-            currentDeltaTime = dt;
-            completedTasks = 0;
-            currentFrameSignal++;
-        }
-        cvStart.notify_all();
-
-        std::unique_lock<std::mutex> lock(poolMutex);
-        cvEnd.wait(lock, [this]() { return completedTasks == static_cast<int>(numThreads); });
-    }
-
-    // Recalculate survival statistics inside serial master frame passes
-    int survivors = 0;
-    for (int i = 0; i < currentActiveCount; ++i) {
-        if (asteroids[i].active) survivors++;
-    }
-    livingAsteroidCount = survivors;
-
-    // Track deterministic trajectory updates of planetary nodes using raymath vectors
-    for (auto& planet : planets) {
-        Vector3 planetGravity = blackHole.CalculateGravity(planet.position);
-        planet.velocity = Vector3Add(planet.velocity, Vector3Scale(planetGravity, dt));
-        planet.position = Vector3Add(planet.position, Vector3Scale(planet.velocity, dt));
-    }
-}
-
-void Universe::Draw3D(Camera3D camera) const {
-    rlDisableDepthTest();
-    BeginMode3D(camera);
-
-    currentCameraPos = camera.position;
-
-    int totalParticles = currentActiveCount;
-    if (totalParticles > 0) {
-        // Clear Raylib's queue and unlock raw driver access
-        rlDrawRenderBatchActive();
-
-        // 1 SINGLE UNIFIED HARDWARE DRAW CALL
-        rlBegin(RL_LINES);
-        for (int i = 0; i < totalParticles; ++i) {
-            if (asteroids[i].active) {
-                size_t vIdx = static_cast<size_t>(i) * 3;
-                Color c = asteroids[i].color;
-
-                rlColor4ub(c.r, c.g, c.b, c.a);
-                rlVertex3f(vertexBuffer[vIdx], vertexBuffer[vIdx + 1], vertexBuffer[vIdx + 2]);
-                rlVertex3f(vertexBuffer[vIdx] + 0.001f, vertexBuffer[vIdx + 1], vertexBuffer[vIdx + 2]);
-            }
-        }
-        rlEnd();
-    }
-
-    EndMode3D();
-
-    // Standard rendering for planets
-    BeginMode3D(camera);
-    const Vector3 holePos = blackHole.GetPosition();
-    const float holeMass = blackHole.GetMass();
-    const float holeHorizon = blackHole.GetEventHorizon();
-    for (const auto& planet : planets) {
-        Vector3 apparentPos = Relativity::GetApparentPosition(planet.position, camera.position, holePos, holeMass, holeHorizon);
-        DrawSphere(apparentPos, planet.radius, planet.color);
-    }
-    EndMode3D();
-
-    rlEnableDepthTest();
-}
-
-
-void Universe::DrawHUD(Camera3D camera) const {
-    const Vector3 holePos = blackHole.GetPosition();
-    const float holeMass = blackHole.GetMass();
-    const float holeHorizon = blackHole.GetEventHorizon();
-
-    for (const auto& planet : planets) {
-        Vector3 apparentPos = Relativity::GetApparentPosition(planet.position, camera.position, holePos, holeMass, holeHorizon);
-        Vector2 screenPos = GetWorldToScreen(apparentPos, camera);
-
-        if (screenPos.x > 0 && screenPos.x < GetScreenWidth() && screenPos.y > 0 && screenPos.y < GetScreenHeight()) {
-            DrawText(planet.name, (int)screenPos.x + 12, (int)screenPos.y - 6, 14, GREEN);
-            DrawCircleLines((int)screenPos.x, (int)screenPos.y, 8, GREEN);
+        std::lock_guard<std::mutex> sync_lock(pool_mutex);
+        --active_workers;
+        if (active_workers == 0) {
+            cv_end.notify_one();
         }
     }
 }
 
-void Universe::IncreaseParticleLoad() {
-    currentActiveCount += 4000;
-    if (currentActiveCount > maxAsteroids) currentActiveCount = maxAsteroids;
+void godot_hpc::Universe::update_asynchronous_physics(float p_delta_time, const BlackHole& p_black_hole) noexcept {
+    {
+        std::lock_guard<std::mutex> lock(pool_mutex);
+        atomic_delta_time = p_delta_time;
+        cached_hole_pos = p_black_hole.position;
+        cached_hole_mass = p_black_hole.mass;
+        cached_horizon = p_black_hole.eventHorizon;
 
-    for (int i = 0; i < currentActiveCount; ++i) {
-        if (!asteroids[i].active) {
-            float radius = 4.0f + (float)(rand() % 160) * 0.1f;
-            float angle = (float)(rand() % 360) * DEG2RAD;
-            asteroids[i].position = { sinf(angle) * radius, ((float)(rand() % 20) - 10.0f) * 0.03f, cosf(angle) * radius };
-            float speed = sqrtf(blackHole.GetMass() / radius) * 1.0f;
-            if (i % 3 == 0) speed *= 0.42f;
-            asteroids[i].velocity = { -cosf(angle) * speed, 0.0f, sinf(angle) * speed };
-            asteroids[i].active = true;
-        }
+        active_workers = static_cast<int32_t>(worker_pool.capacity());
+        ++frame_ticket;
     }
+    cv_start.notify_all(); // Wake the async core cluster simultaneously
+
+    std::unique_lock<std::mutex> lock(pool_mutex);
+    cv_end.wait(lock, [this] { return active_workers == 0; }); // Safe thread join barrier
+
+    // ============================================================================
+    // THE ZERO-LOCK BUFFER FLIP PASS
+    // Highly efficient standard conform std::swap call mirroring the arrays instantly!
+    // ============================================================================
+    std::swap(current_states, next_states);
 }
 
-void Universe::DecreaseParticleLoad() {
-    currentActiveCount -= 4000;
-    if (currentActiveCount < 0) currentActiveCount = 0;
+void godot_hpc::Universe::render_hardware_vertex_buffers(const Vector3& p_cam_pos) noexcept {
+    rlBegin(RL_LINES);
+    const Vector3 h_pos = cached_hole_pos;
+    const float h_mass = cached_hole_mass;
+    const float h_horizon = cached_horizon;
+
+    for (uint64_t i = 0; i < max_asteroids; ++i) {
+        if (!current_states[i].active) continue;
+
+        Vector3 r_pos = current_states[i].position;
+        // Direct execution routing to our matching relativistic Einstein optics core
+        Vector3 app_pos = Relativity::GetApparentPosition(r_pos, p_cam_pos, h_pos, h_mass, h_horizon);
+
+        rlColor4ub(current_states[i].color.r, current_states[i].color.g, current_states[i].color.b, current_states[i].color.a);
+        rlVertex3f(app_pos.x, app_pos.y, app_pos.z);
+        rlVertex3f(app_pos.x + current_states[i].velocity.x * 0.02f, app_pos.y + current_states[i].velocity.y * 0.02f, app_pos.z + current_states[i].velocity.z * 0.02f);
+    }
+    rlEnd();
+}
+
+uint64_t godot_hpc::Universe::get_active_survivors() const noexcept {
+    uint64_t count = 0;
+    for (uint64_t i = 0; i < max_asteroids; ++i) {
+        if (current_states[i].active) ++count;
+    }
+    return count;
 }
