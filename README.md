@@ -16,7 +16,6 @@ Core Engineer: Mika Rattay
 Project Classification: AI Open-World Simulation Sandbox
 Standard Specification: ISO/IEC C++20 Language Compliant Pipeline
 
-Ein paar spielregeln .. denk erstmal nach was wir zuerst machen sollten, und welche dateien du von mir brauchst bevor du code auspuckst. Außerdem muss alles gut kommentiert im CIG stil sein, aber kein rollenspiel und CIG erwähnen. Der Namespace stellar_agents. Und es ist nach c++20 cig standards gerschieben, multi threaded
 stellar-agents/
 ├── CMakeLists.txt                 # Master build orchestration steering native C++20 optimization flags
 ├── README.md                      # Structural documentation outlining the emergent multi-agent framework
