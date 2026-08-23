@@ -1,69 +1,78 @@
-#ifndef UNIVERSE_H
-#define UNIVERSE_H
-
+#pragma once
+#include "raylib.h"
+#include "black_hole.h"
 #include <vector>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
-#include <future>
-#include "raylib.h"
-#include "black_hole.h"
+#include <atomic>
 
-namespace godot_hpc { // Clean explicit namespace mapping to block symbol pollution
+// High-performance cache-aligned layout for massively parallel simulation passes
+struct Asteroid {
+    Vector3 position;
+    Vector3 velocity;
+    Color color;
+    bool active;
+};
 
-    struct AsteroidData {
-        Vector3 position{ 0.0f, 0.0f, 0.0f };
-        Vector3 velocity{ 0.0f, 0.0f, 0.0f };
-        Color color{ WHITE };
-        bool active{ true };
-    };
+// Canonical Star Citizen lore planetary system coordinates (Tamsa System baseline)
+struct Planet {
+    Vector3 position;
+    Vector3 velocity;
+    float radius;
+    Color color;
+    const char* name;
+};
 
-    class Universe final {
-    private:
-        uint64_t max_asteroids{ 1000000 };
-        float target_orbit_radius{ 2400.0f };
+// Main simulation pipeline coordinator designed to scale across high-core-count processors
+class Universe {
+private:
+    const BlackHole& blackHole;
+    std::vector<Asteroid> asteroids;
+    std::vector<Planet> planets;
 
-        // ============================================================================
-        // THE UNZERSTÖRBAR DOUBLE-BUFFER REGISTRY (ANTI-DATA-RACE OVERRIDE)
-        // Threads read from 'current_states' and write ONLY to 'next_states' concurrently.
-        // Bypasses the Mutex contention and fully locks down data races!
-        // ============================================================================
-        std::vector<AsteroidData> current_states;
-        std::vector<AsteroidData> next_states;
-        std::vector<Vector3> hardware_vertex_buffer;
+    int maxAsteroids;
+    int currentActiveCount;
+    int livingAsteroidCount;
+    unsigned int numThreads;
 
-        // Advanced C++20 Asynchronous Thread Pool Registry
-        std::vector<std::jthread> worker_pool; // jthread automatically joins on destruction pass
-        std::mutex pool_mutex;
-        std::condition_variable cv_start;
-        std::condition_variable cv_end;
+    // --- CIG Static Worker Pool Synchronization States ---
+    std::vector<std::thread> workerPool;
+    std::mutex poolMutex;
+    std::condition_variable cvStart;
+    std::condition_variable cvEnd;
+    std::atomic<bool> stopPool{ false };
+    std::atomic<int> activeWorkers{ 0 };
+    float currentDeltaTime{ 0.0f };
+    std::atomic<int> completedTasks{ 0 };
+    int currentFrameSignal{ 0 };
 
-        int32_t active_workers{ 0 };
-        uint64_t frame_ticket{ 0 };
-        float atomic_delta_time{ 0.016f };
-        bool terminate_simulation{ false };
+    // --- CIG High-Performance Dynamic CPU Buffers ---
+    mutable Vector3 currentCameraPos{ 0.0f, 0.0f, 0.0f };
+    mutable std::vector<float> vertexBuffer;
 
-        // Cached constants to maximize CPU L1/L2 data cache throughput
-        Vector3 cached_hole_pos{ 0.0f, 0.0f, 0.0f };
-        float cached_hole_mass{ 0.0f };
-        float cached_horizon{ 0.0f };
+    // Concurrent thread worker task executing slicing operations on dense memory arrays
+    void WorkerLoop(unsigned int threadId);
 
-        void worker_thread_execution_loop(std::stop_token p_token, int32_t p_worker_id) noexcept;
+public:
+    // Lifecycle setup establishing memory reservations and system configurations
+    Universe(const BlackHole& hole, int maxParticles);
+    ~Universe();
+    Vector3 GetPlanetPosition(int32_t p_index) const noexcept;
+    // Core processing and integration routines executed every frame step
+    void Update(float dt);
 
-    public:
-        Universe(uint64_t p_max_asteroids, float p_orbit_radius) noexcept;
-        ~Universe();
+    // Low-level graphics pipeline execution stages (Const-qualified for thread-safe rendering jobs)
+    void Draw3D(Camera3D camera) const;
+    void DrawHUD(Camera3D camera) const;
 
-        // Disallow compiler copying to protect strict multithreaded raw buffers
-        Universe(const Universe&) = delete;
-        Universe& operator=(const Universe&) = delete;
+    // Dynamic scale regulators for testing core thread workloads under varying pressure
+    void IncreaseParticleLoad();
+    void DecreaseParticleLoad();
 
-        void update_asynchronous_physics(float p_delta_time, const BlackHole& p_black_hole) noexcept;
-        void render_hardware_vertex_buffers(const Vector3& p_cam_pos) noexcept;
-
-        [[nodiscard]] uint64_t get_active_survivors() const noexcept;
-    };
-
-} // namespace sterllar_agents
-
-#endif // UNIVERSE_H
+    // Mission control telemetry metrics for system profiling and optimization audits
+    [[nodiscard]] int GetActiveParticleCount() const noexcept { return currentActiveCount; }
+    [[nodiscard]] int GetLivingParticleCount() const noexcept { return livingAsteroidCount; }
+    [[nodiscard]] int GetMaxParticleCount() const noexcept { return maxAsteroids; }
+    [[nodiscard]] unsigned int GetThreadCount() const noexcept { return numThreads; }
+};

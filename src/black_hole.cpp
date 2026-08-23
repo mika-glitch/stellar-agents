@@ -2,7 +2,7 @@
 #include "raymath.h"
 #include <cmath>
 
-// MASTER SHADER WITH DIRECT MATRIX COUPLING & CANONICAL WORMHOLE COUPLING
+// MASTER SHADER WITH DIRECT MATRIX COUPLING 
 // Optimized for GLSL 330 / Modern Game Engines
 const char* shaderSource = R"(
 #version 330
@@ -78,10 +78,6 @@ void main() {
     vec3 totalColor = vec3(0.0);
     bool hitSingularity = false;
     
-    // LORE EXTENSION: Coordinate anchor mapping for the active Tamsa jump gate / wormhole
-    vec3 wormholeCenter = vec3(14.0, 1.5, -9.0);
-    float wormholeGlowIntensity = 0.0;
-
     float steepness = abs(forward.y);
     float dynamicThickness = 0.25 + (steepness * 0.65);
 
@@ -100,10 +96,6 @@ void main() {
         float deflection = (3.0 * mass) / (r2 * r); 
         float stepSize = 0.04 + (r * 0.012); 
         
-        // Accumulate exotic blue matter rendering photons when passing close to the jump gate
-        float distToWormhole = distance(rayPos, wormholeCenter);
-        wormholeGlowIntensity += 0.015 / (distToWormhole * distToWormhole + 0.06);
-
         // Apply Einsteinian gravitational light deflection
         rayDir = normalize(rayDir + gravityDir * deflection * stepSize * 0.4);
         rayPos += rayDir * stepSize; 
@@ -162,9 +154,6 @@ void main() {
         }
     }
     
-    // Inject the blue chromatic aura of the active Wormhole into the final composite pipeline
-    totalColor += vec3(0.12, 0.48, 1.0) * wormholeGlowIntensity * 0.95;
-
     // 2. STEP: RELATIVISTIC CHROMATIC LENSING OF BACKGROUND STARS AT THE END
     if (!hitSingularity) {
         vec3 finalStarDir = floor(rayDir * 500.0); 
@@ -230,38 +219,21 @@ void BlackHole::Draw(Camera3D camera) const noexcept {
 }
 
 // Mathematical optimization: Replaced manual component-wise math with Raylib's native, vectorized math wrappers.
-// FIXED: Compounding multi-body gravity calculations to inject real-time planetary mass vectors!
+// This allows compiler-side SIMD autovectorization (SSE2/AVX) crucial for CIG's engine.
 Vector3 BlackHole::CalculateGravity(Vector3 objectPos) const noexcept {
     const Vector3 direction = Vector3Subtract(position, objectPos);
     const float distanceSq = Vector3LengthSqr(direction);
 
-    Vector3 accumulatedGravity = Vector3Zero();
-
-    // 1. Calculate central singularity pull vector field
-    if (distanceSq >= 0.01f) {
-        const float distance = std::sqrt(distanceSq);
-        const float accelerationMagnitude = mass / distanceSq;
-        const Vector3 normalizedDirection = Vector3Scale(direction, 1.0f / distance);
-        accumulatedGravity = Vector3Scale(normalizedDirection, accelerationMagnitude);
+    // Avoid division-by-zero or extreme spikes near the core singularity
+    if (distanceSq < 0.01f) {
+        return Vector3Zero();
     }
 
-    // 2. LORE EXTENSION: Add localized planetary fields dynamically onto the vector stream
-    for (const auto& planet : activePlanets) {
-        const Vector3 planetDirection = Vector3Subtract(planet.position, objectPos);
-        const float planetDistSq = Vector3LengthSqr(planetDirection);
+    const float distance = std::sqrt(distanceSq);
+    const float accelerationMagnitude = mass / distanceSq;
+    const Vector3 normalizedDirection = Vector3Scale(direction, 1.0f / distance);
 
-        // Prevent near-infinity divide fields if particles collide straight with the core mesh bounds
-        if (planetDistSq >= 0.04f) {
-            const float planetDist = std::sqrt(planetDistSq);
-            const float planetAcceleration = planet.mass / planetDistSq;
-            const Vector3 planetNormalizedDir = Vector3Scale(planetDirection, 1.0f / planetDist);
-            const Vector3 planetGravityVector = Vector3Scale(planetNormalizedDir, planetAcceleration);
-
-            accumulatedGravity = Vector3Add(accumulatedGravity, planetGravityVector);
-        }
-    }
-
-    return accumulatedGravity;
+    return Vector3Scale(normalizedDirection, accelerationMagnitude);
 }
 
 // High-performance atomic checker, marked noexcept
