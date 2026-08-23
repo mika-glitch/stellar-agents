@@ -8,6 +8,9 @@ stellar_agents::EnvironmentMatrix::EnvironmentMatrix(uint64_t p_max_agents) noex
     // Pre-allocate contiguous heap memory blocks to eliminate runtime allocations
     readable_buffer.resize(total_allocated_agents);
     writable_buffer.resize(total_allocated_agents);
+
+    // FIXED: Allocating the linear hardware vertex cache for the 1.5M agent streams
+    hardware_vertex_buffer.resize(total_allocated_agents * 2);
 }
 
 void stellar_agents::EnvironmentMatrix::swap_evolutionary_buffers() noexcept {

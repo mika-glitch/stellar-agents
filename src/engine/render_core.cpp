@@ -1,6 +1,6 @@
 #include "render_core.h"
-#include "relativity.h"
-#include "raymath.h" // FIXED: Loaded mandatory header to resolve Vector3Scale and Vector3Add
+#include "math/relativity.h"
+#include "raymath.h"
 #include "rlgl.h" // Enforced for raw low-level OpenGL pipeline streaming
 #include <cmath>
 
@@ -109,11 +109,10 @@ void stellar_agents::RenderCore::draw_composite_scene(const Camera3D& p_camera, 
     const Vector2 render_res = { w, h };
     const float current_time = static_cast<float>(GetTime());
 
-    // Register-caching compiler targets
     const Vector3 cached_c_pos = p_camera.position;
     const Vector3 cached_c_target = p_camera.target;
 
-    // --- STAGE 1: EXECUTE BACKGROUND RELATIVISTIC PLASMA SHADER ---
+    // --- STAGE 1: EXECUTE BACKGROUND SHADER ---
     SetShaderValue(accretion_shader, uniform_time, &current_time, SHADER_UNIFORM_FLOAT);
     SetShaderValue(accretion_shader, uniform_resolution, &render_res, SHADER_UNIFORM_VEC2);
     SetShaderValue(accretion_shader, uniform_cam_pos, &cached_c_pos, SHADER_UNIFORM_VEC3);
@@ -125,28 +124,23 @@ void stellar_agents::RenderCore::draw_composite_scene(const Camera3D& p_camera, 
     EndShaderMode();
     EndBlendMode();
 
-    // --- STAGE 2: PROCESS AND DRAW DISCRETE AGENT POPULATIONS ---
+    // --- STAGE 2: MATHEMATIK-FREIES BULK-BUFFER-STREAMING ---
     const auto& dataset = p_matrix.get_read_buffer();
+    const auto& v_cache = p_matrix.get_vertex_buffer(); // Pre-calculated in thread pool
     const uint64_t entity_count = p_matrix.get_capacity();
 
-    // Fixed physical anchors matching our custom CADS parameters
-    constexpr Vector3 central_singularity_pos = { 0.0f, 0.0f, 0.0f };
-    constexpr float core_mass = 600.0f;
-    constexpr float event_horizon = 1.5f;
-
-    rlBegin(RL_LINES); // Direct low-overhead hardware vertex submission loop
+    rlBegin(RL_LINES); // Direct zero-overhead hardware blit pass
     for (uint64_t i = 0; i < entity_count; ++i) {
-        const AgentState& agent = dataset[i];
-        if (!agent.is_active) continue;
+        if (!dataset[i].is_active) continue;
 
-        // Apply general relativistic optical path bending straight on the frame buffer
-        Vector3 apparent_start_pos = Relativity::GetApparentPosition(agent.position, cached_c_pos, central_singularity_pos, core_mass, event_horizon);
-        Vector3 real_end_pos = Vector3Add(agent.position, Vector3Scale(agent.velocity, 0.02f));
-        Vector3 apparent_end_pos = Relativity::GetApparentPosition(real_end_pos, cached_c_pos, central_singularity_pos, core_mass, event_horizon);
+        rlColor4ub(dataset[i].color.r, dataset[i].color.g, dataset[i].color.b, dataset[i].color.a);
 
-        rlColor4ub(agent.color.r, agent.color.g, agent.color.b, agent.color.a);
-        rlVertex3f(apparent_start_pos.x, apparent_start_pos.y, apparent_start_pos.z);
-        rlVertex3f(apparent_end_pos.x, apparent_end_pos.y, apparent_end_pos.z);
+        // Zero math calculation on main thread: Pull pre-sorted lines from cache
+        const Vector3& vStart = v_cache[i * 2];
+        const Vector3& vEnd = v_cache[i * 2 + 1];
+
+        rlVertex3f(vStart.x, vStart.y, vStart.z);
+        rlVertex3f(vEnd.x, vEnd.y, vEnd.z);
     }
     rlEnd();
 }

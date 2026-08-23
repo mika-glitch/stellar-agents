@@ -15,7 +15,7 @@ int main() {
 
     Camera3D camera = { Vector3{ 0.0f, 15.0f, -45.0f }, Vector3{ 0.0f, 0.0f, 0.0f }, Vector3{ 0.0f, 1.0f, 0.0f }, 45.0f, CAMERA_PERSPECTIVE };
 
-    constexpr uint64_t totalAsteroids = 1500000, totalShips = 250, totalAgentCapacity = totalAsteroids + totalShips + 1;
+    constexpr uint64_t totalAsteroids = 150000, totalShips = 250, totalAgentCapacity = totalAsteroids + totalShips + 1;
     stellar_agents::EnvironmentMatrix stateMatrix(totalAgentCapacity);
     stellar_agents::PhysicsEvolution  evolutionEngine;
     stellar_agents::RenderCore        graphicsEngine;
