@@ -16,56 +16,38 @@ Core Engineer: Mika Rattay
 Project Classification: AI Open-World Simulation Sandbox
 Standard Specification: ISO/IEC C++20 Language Compliant Pipeline
 
-
-========================================================================================================
-[ FRONTEND DECK: RAYLIB HOST APPLICATION ] (Main Thread / Cheap Input & System Unwind Registers)
-========================================================================================================
-  [ CameraController ] (Free Flight Math) ───► Updates Camera LookAt & POS Vectors ──┐
-                                                                                     ▼
-  [ Tactical HUD ]     (Telemetry UI)    ◄─── Real-Time Throttled Data Stream ──► [ MAIN ENGINE LOOP ]
-                                                                                     │
-               ┌─────────────────────────────────────────────────────────────────────┘
-               │ (1) Dispatch Frame Physics Tick
-               ▼
-========================================================================================================
-[ LOW-LEVEL ENGINE BACKEND: NATIVE C++20 CORE ] (Pure Brute-Force Asynchronous Processing Stack)
-========================================================================================================
-  
-  [ BlackHole (Singularity) ] ───► Calculates Multi-Body Gravity Acceleration Field Vectors
-               │
-               ├─► [ Relativistic Raymarching Pipeline ] ──► [ Direct GPU Draw (Einstein Ring Layer) ]
-               │
-               ▼ (2) Dispatches Spatial Parameters & Mass Coordinates
-  
-  [ Universe (Job Manager) ]  ───► Spawns Autonomous Worker Pool Topology (Contiguous Cache Buffers)
-               │
-               ▼ Instantiates Asynchronous C++20 Execution Jobs Across All Available Hardware Cores
-  ┌──────────────────────────────┬──────────────────────────────┬──────────────────────────────┐
-  │ (Spawn Worker Thread 0)      │ (Spawn Worker Thread 1)      │ (Spawn Worker Thread n)      │
-  ▼                              ▼                              ▼                              ▼
-========================================================================================================
-[ WORKER-POOL MATRIX: DETACHED TASK EXECUTION LAYERS ] (Lock-Free Thread Barriers)
-========================================================================================================
-  ║    std::jthread Task 0     ║ ║    std::jthread Task 1     ║ ║    std::jthread Task n     ║
-  ============================== ============================== ==============================
-  │ (Computes Orbit Chunk 0)     │ (Computes Orbit Chunk 1)     │ (Computes Orbit Chunk n)     
-  ▼                              ▼                              ▼                              
-  [ Asteroid Data Block 0 ]      [ Asteroid Data Block 1 ]      [ Asteroid Data Block n ]      
-  (Reads current_states / Writes exclusively to separate parallel registers inside next_states)
-  │                              │                              │                              
-  └──────────────────────────────┼──────────────────────────────┘                              
-                                 │
-                                 ▼ [ C++20 Synchronization Join Barrier / Pointer Swap ]
-                                 │ (All parallel workers report ready back to the Host Thread)
-                                 ▼
-========================================================================================================
-[ HARDWARE GRAPHICS BLIT PASS ] (Zero-Allocation Render Execution Queue)
-========================================================================================================
-                                 │
-                                 ▼ rlBegin(RL_LINES) 
-                      [ Relativity::GetApparentPosition() ] ◄─── (Evaluates Einstein Lens Shifts)
-                                 │
-                                 ▼ Streams Vertex Buffers Straight to the Bus Interface
-                    ====================================
-                    ║                GPU               ║ ◄─── High-FPS Bulk Vector Array Flush
-                    ====================================
+Ein paar spielregeln .. denk erstmal nach was wir zuerst machen sollten, und welche dateien du von mir brauchst bevor du code auspuckst. Außerdem muss alles gut kommentiert im CIG stil sein, aber kein rollenspiel und CIG erwähnen. Der Namespace stellar_agents. Und es ist nach c++20 cig standards gerschieben, multi threaded
+stellar-agents/
+├── CMakeLists.txt                 # Master build orchestration steering native C++20 optimization flags
+├── README.md                      # Structural documentation outlining the emergent multi-agent framework
+│
+└── src/                           # Monolithic containment layers dissolved into decentralized subsystems
+    ├── main.cpp                   # Pure application boot node. Instantiates hardware viewport contexts,
+    │                              # configures display bounds, and drives the global chronological tick.
+    │
+    ├── engine/                    # --- SECTOR 1: SIMULATION INFRUSTRUCTURE ---
+    │   ├── render_core.h          
+    │   ├── render_core.cpp        # Zero-allocation hardware blit gate. Streams processed continuous state 
+    │   │                          # vector blocks to VRAM using direct batching. Free of simulation math.
+    │   ├── physics_evolution.h    
+    │   └── physics_evolution.cpp  # Asynchronous core execution engine. Orchestrates concurrent C++20 jthread pools
+    │                              # to compute localized agent state mutations without thread locking barriers.
+    │
+    ├── cads/                      # --- SECTOR 2: COMPLEX ADAPTIVE DYNAMIC SYSTEMS (CADS) ---
+    │   ├── agent_state.h          # Contiguous, cache-aligned struct definitions for flat data-oriented agent states 
+    │   │                          # (Position, Velocity, Color, ID, AgentType). Maximum L1/L2 cache local footprint.
+    │   ├── environment_matrix.h   # Multi-layered double-buffering controller. Regulates non-interfering read/write 
+    │   │                          # permissions across thread workers to structurally eliminate data race conditions.
+    │   │
+    │   # --- AUTONOMOUS BEHAVIORAL CORES (PURE DECOUPLED MATHEMATICAL TRANSFORMATION FUNCTIONS) ---
+    │   ├── attractor_agent.cpp    # Deterministic phase-space attractor logic (Stars/Singularities). Computes 
+    │   │                          # non-linear macroscopic force fields mapping global boundary conditions.
+    │   ├── passive_agent.cpp      # Non-adaptive particle mechanics (Asteroids/Debris). Processes relativistic orbital 
+    │   │                          # trajectories and decay parameters under the influence of neighboring attractors.
+    │   └── adaptive_agent.cpp     # Dissipative homeostatic intelligence (UEE Capital Ships). Computes non-conservative 
+    │                              # behavioral loops, balancing local swarming thrust vectors with environmental threats.
+    │
+    └── math/                      # --- SECTOR 3: MATHEMATICAL RESOLUTION FOUNDATION ---
+        ├── relativity.h           
+        └── relativity.cpp         # Exception-free Schwarzschild lensing solver. Computes non-linear space-time 
+                                   # optical path deflections, fully optimized for hardware-near vector registers.
