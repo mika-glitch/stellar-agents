@@ -1,32 +1,36 @@
 #include "environment_matrix.h"
-#include <utility>
-#include <algorithm>
 
-stellar_agents::EnvironmentMatrix::EnvironmentMatrix(uint64_t p_max_agents) noexcept
-    : total_allocated_agents(p_max_agents)
-{
-    // Pre-allocate contiguous heap memory blocks to eliminate runtime allocations
-    readable_buffer.resize(total_allocated_agents);
-    writable_buffer.resize(total_allocated_agents);
+namespace stellar_agents {
 
-    // FIXED: Allocating the linear hardware vertex cache for the 1.5M agent streams
-    hardware_vertex_buffer.resize(total_allocated_agents * 2);
-}
+    // ============================================================================
+    // CADS ENVIRONMENT MATRIX CONSTRUCTOR
+    // Executes a one-time, strict raw memory reservation loop on application boot.
+    // Preserves cache line coherence by packing arrays side-by-side in global RAM.
+    // ============================================================================
+    EnvironmentMatrix::EnvironmentMatrix(uint64_t p_initial_capacity) noexcept
+        : m_capacity(p_initial_capacity)
+        , m_active_count(p_initial_capacity)
+    {
+        // 1. Instantiate flat, contiguous array heap vectors
+        m_read_ptr = std::make_unique<std::vector<AgentState>>();
+        m_write_ptr = std::make_unique<std::vector<AgentState>>();
 
-void stellar_agents::EnvironmentMatrix::swap_evolutionary_buffers() noexcept {
-    // Standard-compliant atomic pointer swap bypassing layout reallocation overhead
-    std::swap(readable_buffer, writable_buffer);
-}
+        // ========================================================================
+        // CRITICAL HARDWARE PASS: HEAP CAPACITY RESERVATION
+        // Enforces structural array padding up to the max density perimeter boundaries.
+        // Prevents dynamic re-allocations and pointer validation breaks inside the loops.
+        // ========================================================================
+        m_read_ptr->resize(m_capacity);
+        m_write_ptr->resize(m_capacity);
 
-uint64_t stellar_agents::EnvironmentMatrix::count_active_agents() const noexcept {
-    uint64_t active_count = 0;
+        // Pre-initialize basic fields for structural identity protection
+        for (uint64_t i = 0; i < m_capacity; ++i) {
+            (*m_read_ptr)[i].agent_id = static_cast<uint32_t>(i);
+            (*m_read_ptr)[i].is_active = true;
 
-    // Linear high-throughput contiguous array processing sweep
-    for (uint64_t i = 0; i < total_allocated_agents; ++i) {
-        if (readable_buffer[i].is_active) {
-            ++active_count;
+            (*m_write_ptr)[i].agent_id = static_cast<uint32_t>(i);
+            (*m_write_ptr)[i].is_active = true;
         }
     }
 
-    return active_count;
-}
+} // namespace stellar_agents

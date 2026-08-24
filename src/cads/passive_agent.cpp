@@ -1,18 +1,12 @@
-#include "agent_state.h"
-#include "raymath.h"
-#include <cmath>
+#include "agent_state.h"     // ZWINGEND: Liefert dem Compiler die Struktur AgentState
+#include "engine_config.h"   // Holt config::physics::rs_horizon und die Massen-Konstanten
+#include "raymath.h"         // Liefert Vector3Subtract, Vector3LengthSqr etc.
 
 namespace stellar_agents {
 
     // ============================================================================
-    // CADS PASSIVE AGENT DYNAMICS EVOLUTION ENGINE
-    // Standard compliance: Fully encapsulated inside the functional project namespace.
-    // Processes non-adaptive kinematic updates under local field potentials.
-    // ============================================================================
-
-    // ============================================================================
-    // DETERMINISTIC STATE MUTATION OPERATOR
-    // Executes discrete chronological integrations across non-conservative particle streams.
+    // DETERMINISTIC STATE MUTATION OPERATOR (STATIC SCHWARZSCHILD MODEL)
+    // Executes discrete chronological integrations across massless particle streams.
     // Marked noexcept to guarantee zero execution context switches inside thread tasks.
     // ============================================================================
     void MutatePassiveAgentState(
@@ -31,12 +25,35 @@ namespace stellar_agents {
         Vector3 operationalPosition = p_current_state.position;
         Vector3 operationalVelocity = p_current_state.velocity;
 
-        // 1. Classical Euler-Cromer chronological phase-space integration step
-        // High performance vectorized integration pattern native to hardware floating-point lines
-        operationalVelocity = Vector3Add(operationalVelocity, Vector3Scale(p_accumulated_field_acceleration, p_delta_time));
+        // ========================================================================
+        // MASSLESS CORE PHYSICS PASS: CENTRAL BLACK HOLE FIELD INJECTION
+        // ========================================================================
+        // Target: Fixed Origin Vector [0.0f, 0.0f, 0.0f] for the Central Black Hole
+        constexpr Vector3 blackHolePosition = { 0.0f, 0.0f, 0.0f };
+        Vector3 relativePosition = Vector3Subtract(blackHolePosition, operationalPosition);
+        float distanceSquared = Vector3LengthSqr(relativePosition);
+
+        // RELATIVISTIC DEALLOCATION GATEWAY (EVENT HORIZON KILL TRIGGER)
+        // Hard boundary check against the Schwarzschild Radius compiled from config
+        if (distanceSquared < (config::physics::rs_horizon * config::physics::rs_horizon)) [[unlikely]] {
+            p_next_state.is_active = false; // Physisches Swap-and-Pop-Löschgatter
+            return;
+        }
+
+        // Standard radial Newtonian attraction calculation serving as Schwarzschild baseline
+        float gravityMagnitude = config::physics::black_hole_runtime_mass / distanceSquared;
+        Vector3 gravityAcceleration = Vector3Scale(Vector3Normalize(relativePosition), gravityMagnitude);
+
+        // Accumulate baseline incoming forces with local static central acceleration
+        Vector3 totalAcceleration = Vector3Add(p_accumulated_field_acceleration, gravityAcceleration);
+
+        // ========================================================================
+        // CLASSICAL EULER-CROMER CHRONOLOGICAL PHASE-SPACE INTEGRATION STEP
+        // ========================================================================
+        operationalVelocity = Vector3Add(operationalVelocity, Vector3Scale(totalAcceleration, p_delta_time));
         operationalPosition = Vector3Add(operationalPosition, Vector3Scale(operationalVelocity, p_delta_time));
 
-        // 2. Flush mutated system states cleanly down to the isolated shadow slice buffer
+        // Flush mutated system states cleanly down to the isolated shadow slice buffer
         p_next_state.position = operationalPosition;
         p_next_state.velocity = operationalVelocity;
         p_next_state.color = p_current_state.color; // Pass color definitions unchanged across frames

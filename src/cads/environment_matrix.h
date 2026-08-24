@@ -3,49 +3,71 @@
 
 #include "agent_state.h"
 #include <vector>
+#include <memory>
 #include <cstdint>
 
 namespace stellar_agents {
 
     // ============================================================================
-    // CADS ENVIRONMENTAL STATES MATRIX LAYER
-    // Encapsulates the contiguous memory arrays managing dual execution buffers.
-    // Guarantees lock-free read/write isolation across concurrent worker threads.
+    // CADS ENVIRONMENT MATRIX CONTROLLER (DOUBLE-BUFFERING ARCHITECTURE)
+    // Manages dual contiguous memory blocks to structurally eliminate data races
+    // between asynchronous physics jthread pools and the VRAM streaming core.
     // ============================================================================
-    class EnvironmentMatrix final {
-    private:
-        uint64_t total_allocated_agents{ 0 };
-
-        // Contiguous memory blocks for explicit double-buffering isolation
-        std::vector<AgentState> readable_buffer;
-        std::vector<AgentState> writable_buffer;
-
-        // FIXED: Allocated linear vertex cache to offload math from the render thread
-        std::vector<Vector3> hardware_vertex_buffer;
-
+    class EnvironmentMatrix {
     public:
-        explicit EnvironmentMatrix(uint64_t p_max_agents) noexcept;
+        // Explicit allocation tracking memory bounds directly on system boot
+        explicit EnvironmentMatrix(uint64_t p_initial_capacity) noexcept;
+
         ~EnvironmentMatrix() = default;
 
-        // Disable compiler copy mechanisms to safe contiguous hardware buffers
+        // Delete copy semantics to prevent accidental massive memory duplicates inside the pipeline
         EnvironmentMatrix(const EnvironmentMatrix&) = delete;
         EnvironmentMatrix& operator=(const EnvironmentMatrix&) = delete;
 
-        // Swaps internal buffer allocations within microseconds via zero-copy logic
-        void swap_evolutionary_buffers() noexcept;
+        // Allow move operations for seamless system setup transport
+        EnvironmentMatrix(EnvironmentMatrix&&) noexcept = default;
+        EnvironmentMatrix& operator=(EnvironmentMatrix&&) noexcept = default;
 
-        // Thread-safe read access to the active frame state memory sequence
-        [[nodiscard]] const std::vector<AgentState>& get_read_buffer() const noexcept { return readable_buffer; }
+        // --- HIGH-PERFORMANCE LOCK-FREE ACCESS INTERFACES ---
+        // Read buffer access: Enforced const thread-safety for RenderCore streaming
+        [[nodiscard]] const std::vector<AgentState>& get_read_buffer() const noexcept {
+            return *m_read_ptr;
+        }
 
-        // Direct slice pointers providing isolated write fields for thread tasks
-        [[nodiscard]] std::vector<AgentState>& get_write_buffer() noexcept { return writable_buffer; }
+        // Write buffer access: Provides raw target access for physics thread workers
+        [[nodiscard]] std::vector<AgentState>& get_write_buffer() noexcept {
+            return *m_write_ptr;
+        }
 
-        // FIXED: Direct interface exposure granting worker threads zero-lock stream fields
-        [[nodiscard]] std::vector<Vector3>& get_vertex_buffer() noexcept { return hardware_vertex_buffer; }
-        [[nodiscard]] const std::vector<Vector3>& get_vertex_buffer() const noexcept { return hardware_vertex_buffer; }
+        // Infrastructure state telemetry metrics
+        [[nodiscard]] uint64_t get_capacity() const noexcept {
+            return m_capacity;
+        }
 
-        [[nodiscard]] uint64_t get_capacity() const noexcept { return total_allocated_agents; }
-        [[nodiscard]] uint64_t count_active_agents() const noexcept;
+        [[nodiscard]] uint64_t get_active_count() const noexcept {
+            return m_active_count;
+        }
+
+        // Mutator mapping for the Swap-and-Pop atomic frame lifecycle counter
+        void set_active_count(uint64_t p_new_count) noexcept {
+            m_active_count = p_new_count;
+        }
+
+        // ========================================================================
+        // ATOMIC AT-BARRIER POINTER EXCHANGE GATE
+        // Executes a zero-allocation buffer flip once all threads complete cycles.
+        // ========================================================================
+        void FlipBuffers() noexcept {
+            m_read_ptr.swap(m_write_ptr);
+        }
+
+    private:
+        uint64_t m_capacity;
+        uint64_t m_active_count;
+
+        // Dual isolated memory slices managed via lightweight smart pointers
+        std::unique_ptr<std::vector<AgentState>> m_read_ptr;
+        std::unique_ptr<std::vector<AgentState>> m_write_ptr;
     };
 
 } // namespace stellar_agents

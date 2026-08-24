@@ -1,11 +1,12 @@
 #include "agent_state.h"
+#include "engine_config.h"
 #include "raymath.h"
 #include <cmath>
 
 namespace stellar_agents {
 
     // ============================================================================
-    // CADS ADAPTIVE AGENT INTELLIGENCE ENGINE (HOMEOSTATIC STEERING CORTERS)
+    // CADS ADAPTIVE AGENT INTELLIGENCE ENGINE (HOMEOSTATIC STEERING CORTICES)
     // Standard compliance: Scoped inside the functional project namespace.
     // Processes active dissipative behavioral loops using localized state feedback.
     // ============================================================================
@@ -40,12 +41,13 @@ namespace stellar_agents {
         const float p_execution_time,
         const float p_delta_time) noexcept
     {
+        // Fast-track evaluation: Terminate structural update cycles for absorbed entities
         if (!p_current_state.is_active) [[unlikely]] {
             p_next_state.is_active = false;
             return;
         }
 
-        // Register-caching physical core properties
+        // Register-caching physical core properties to maximize L1 hit rates
         const Vector3 operationalPos = p_current_state.position;
         const Vector3 operationalVel = p_current_state.velocity;
         const uint32_t currentID = p_current_state.agent_id;
@@ -59,8 +61,9 @@ namespace stellar_agents {
         const Vector3 forwardFlightDirection = (Vector3LengthSqr(operationalVel) > 0.001f) ? Vector3Normalize(operationalVel) : Vector3Zero();
         Vector3 generatedThrustVector = Vector3Zero();
 
-        // 2. KI-DECISION MATRIX: HOMEOSATIC AFTERBURNER SENSOR
-        const float emergencyThreshold = p_event_horizon_radius * 5.0f;
+        // 2. KI-DECISION MATRIX: HOMEOSTATIC AFTERBURNER SENSOR
+        // Utilizing the unified compile-time horizon thresholds natively
+        const float emergencyThreshold = config::physics::rs_horizon * 5.0f;
         const bool emergencyAfterburnerActive = (currentRangeToBH < emergencyThreshold);
 
         if (emergencyAfterburnerActive) [[unlikely]] {
@@ -73,15 +76,15 @@ namespace stellar_agents {
         }
         else [[likely]] {
             // Standard Adaptive Trajectory Binding Pass
-            const Vector3 vectorToPlanet = Vector3Subtract(p_target_planet_position, operationalPos);
+            // Active tracking attraction field pulling towards the configured target planet
+            Vector3 vectorToPlanet = Vector3Subtract(p_target_planet_position, operationalPos);
             const float distanceToPlanet = Vector3Length(vectorToPlanet);
             const Vector3 directionToPlanet = (distanceToPlanet > 0.01f) ? Vector3Scale(vectorToPlanet, 1.0f / distanceToPlanet) : Vector3Zero();
 
-            // High-Performance Coupling Path: Active tracking attraction field pulling toward Tamsa II
             constexpr float orbitHoldCoeff = 2.5f;
             const Vector3 planetAttractionThrust = Vector3Scale(directionToPlanet, (baseThrustPower * orbitHoldCoeff) / (distanceToPlanet + 0.5f));
 
-            // Structural Weave Engine: Simulates avoidance vectors crossing passing asteroid streams
+            // Structural Weave Engine: Simulates avoidance vectors crossing passing debris streams
             const float weaveFrequency = (shipType == ShipClass::LIGHT_FIGHTER) ? 6.0f : 2.5f;
             const float weaveMagnitude = (shipType == ShipClass::LIGHT_FIGHTER) ? 2.0f : 0.5f;
             const float dynamicOffset = std::sin(p_execution_time * weaveFrequency + currentRangeToBH) * weaveMagnitude;

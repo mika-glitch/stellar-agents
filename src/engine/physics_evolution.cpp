@@ -1,16 +1,20 @@
 #include "physics_evolution.h"
-#include "math/relativity.h" 
+#include "engine_config.h"
 #include "raymath.h"
 #include <cmath>
 #include <algorithm>
 
 namespace stellar_agents {
+
+    // Forward declarations targeting external stateless behavioral core compilation blocks
     extern void MutatePassiveAgentState(const AgentState&, AgentState&, const Vector3&, float) noexcept;
     extern void MutateAdaptiveAgentState(const AgentState&, AgentState&, const Vector3&, const Vector3&, const Vector3&, float, float, float) noexcept;
-    extern Vector3 CalculateAttractorFieldAcceleration(const AgentState&, const Vector3&, float) noexcept;
-    extern bool EvaluateAbsorptionHorizonThreshold(const AgentState&, const Vector3&, float) noexcept;
 }
 
+// ============================================================================
+// SYSTEM CORE INITIALIZATION PASS
+// Reserves persistent worker jthreads aligned to the architecture's hardware limits.
+// ============================================================================
 stellar_agents::PhysicsEvolution::PhysicsEvolution() noexcept {
     const int32_t available_hardware_cores = static_cast<int32_t>(std::thread::hardware_concurrency());
     execution_worker_pool.reserve(available_hardware_cores);
@@ -24,7 +28,12 @@ stellar_agents::PhysicsEvolution::~PhysicsEvolution() {
     condition_start.notify_all();
 }
 
+// ============================================================================
+// ASYNCHRONOUS ENGINE STEP DISPATCHER
+// Coordinates background tasks and safe post-frame array layout compression.
+// ============================================================================
 void stellar_agents::PhysicsEvolution::execute_asynchronous_tick(float p_delta_time, EnvironmentMatrix& p_matrix) noexcept {
+    // Lazy instantiation pattern for the persistent worker threads mapping native cores
     if (execution_worker_pool.empty()) [[unlikely]] {
         const size_t core_capacity = execution_worker_pool.capacity();
         for (size_t i = 0; i < core_capacity; ++i) {
@@ -42,18 +51,24 @@ void stellar_agents::PhysicsEvolution::execute_asynchronous_tick(float p_delta_t
         ++current_frame_ticket;
     }
 
+    // Wake up the concurrent worker pool asynchronously
     condition_start.notify_all();
 
+    // Fence execution path: Stall main context until all chunks complete calculation blocks
     std::unique_lock<std::mutex> lock(pipeline_mutex);
     condition_end.wait(lock, [this] { return counter_active_workers == 0; });
 
-    p_matrix.swap_evolutionary_buffers();
+    // --- STAGE 2: BARE-METAL STORAGE COMPRESSION ---
+    // Synchronous memory clean pass executing Swap-and-Pop before flipping buffers
+    ExecuteStorageCompression(p_matrix);
+
+    // Release the processed configuration snapshot straight to the render core
+    p_matrix.FlipBuffers();
 }
 
 // ============================================================================
-// CONCURRENT EVOLUTION LOOP WITH INTEGRATED DOV/DOD TRANSFORMATION
-// Processes kinematics and optical transforms simultaneously across background cores.
-// Optimized for strict C++20 compilation and zero thread synchronization latency.
+// CONCURRENT WORKER INTEGRATION LOOP
+// Massively parallel state mutations processing unrolled matrix slices.
 // ============================================================================
 void stellar_agents::PhysicsEvolution::worker_thread_execution_loop(
     std::stop_token p_token,
@@ -71,7 +86,6 @@ void stellar_agents::PhysicsEvolution::worker_thread_execution_loop(
 
     const auto& readable_source = p_matrix.get_read_buffer();
     auto& writable_target = p_matrix.get_write_buffer();
-    auto& v_buffer = p_matrix.get_vertex_buffer();
 
     while (!p_token.stop_requested()) {
         std::unique_lock<std::mutex> lock(pipeline_mutex);
@@ -84,15 +98,15 @@ void stellar_agents::PhysicsEvolution::worker_thread_execution_loop(
 
         const float dt = atomic_delta_time;
         const float runTime = total_execution_time;
-        const Vector3 h_pos = cached_attractor_position;
-        const float h_mass = cached_attractor_mass;
-        const float h_horiz = cached_event_horizon;
-        const Vector3 p_pos = cached_target_planet_position;
 
-        // Cache active camera vector coordinates inside the local thread register layer
-        const Vector3 localCamPos = Vector3{ 0.0f, 15.0f, -45.0f };
         lock.unlock(); // BLOCK-FREE CONCURRENCY CONTEXT ENGAGED
 
+        // Static system positions resolved straight from compile-time configuration namespaces
+        constexpr Vector3 black_hole_origin = { 0.0f, 0.0f, 0.0f };
+        const Vector3 core_planet_pos = readable_source[1].position;   // Dynamic Object 1 position track
+        const Vector3 giant_planet_pos = readable_source[2].position;  // Dynamic Object 2 position track
+
+        // Streamlined linear cache unrolling pass over the assigned chunk segment
         for (uint64_t i = segment_start_idx; i < segment_end_idx; ++i) {
             const AgentState& current_agent = readable_source[i];
             AgentState& target_agent = writable_target[i];
@@ -102,34 +116,33 @@ void stellar_agents::PhysicsEvolution::worker_thread_execution_loop(
                 continue;
             }
 
-            // Reference specific central attractor coordinates located at static buffer index 0
-            if (EvaluateAbsorptionHorizonThreshold(readable_source[0], current_agent.position, h_horiz)) [[unlikely]] {
-                target_agent.is_active = false;
+            // Centralized Event Horizon Threshold Evaluation Pass
+            Vector3 rel_to_singularity = Vector3Subtract(black_hole_origin, current_agent.position);
+            float distance_squared = Vector3LengthSqr(rel_to_singularity);
+
+            if (distance_squared < (config::physics::rs_horizon * config::physics::rs_horizon)) [[unlikely]] {
+                target_agent.is_active = false; // Trigger systemic deallocation marker
                 continue;
             }
 
-            // Reference specific central attractor coordinates located at static buffer index 0
-            const Vector3 accumulated_gravity = CalculateAttractorFieldAcceleration(readable_source[0], current_agent.position, h_mass);
+            // O(1) Analytic Schwarzschild Gravitational Field Potential Calculation
+            float gravity_magnitude = config::physics::black_hole_runtime_mass / distance_squared;
+            Vector3 accumulated_gravity = Vector3Scale(Vector3Normalize(rel_to_singularity), gravity_magnitude);
 
+            // Behavioral multiplexer forwarding data arrays straight down to stateless transformation cores
             if (current_agent.type == AgentType::PASSIVE) {
                 MutatePassiveAgentState(current_agent, target_agent, accumulated_gravity, dt);
             }
             else if (current_agent.type == AgentType::ADAPTIVE) {
-                MutateAdaptiveAgentState(current_agent, target_agent, accumulated_gravity, h_pos, p_pos, h_horiz, runTime, dt);
+                MutateAdaptiveAgentState(current_agent, target_agent, accumulated_gravity, black_hole_origin, core_planet_pos, config::physics::rs_horizon, runTime, dt);
             }
             else if (current_agent.type == AgentType::ATTRACTOR) {
+                // Fixed background coordinates remain immutable across frames
                 target_agent = current_agent;
             }
-
-            // Asynchronous DOV/DOD Transformation Pre-Calculation Pass
-            const Vector3 apparent_start = Relativity::GetApparentPosition(target_agent.position, localCamPos, h_pos, h_mass, h_horiz);
-            const Vector3 real_end = Vector3Add(target_agent.position, Vector3Scale(target_agent.velocity, 0.02f));
-            const Vector3 apparent_end = Relativity::GetApparentPosition(real_end, localCamPos, h_pos, h_mass, h_horiz);
-
-            v_buffer[i * 2] = apparent_start;
-            v_buffer[i * 2 + 1] = apparent_end;
         }
 
+        // Notify frame completion barrier cleanly using atomic synchronization registers
         std::lock_guard<std::mutex> sync_lock(pipeline_mutex);
         --counter_active_workers;
         if (counter_active_workers == 0) {
@@ -137,3 +150,42 @@ void stellar_agents::PhysicsEvolution::worker_thread_execution_loop(
         }
     }
 }
+
+// ============================================================================
+// BARE-METAL CONTIGUOUS STORAGE COMPRESSION (SWAP-AND-POP O(1) PIPELINE)
+// Compresses memory layout instantly post-step calculations to maximize SIMD hits.
+// ============================================================================
+void stellar_agents::PhysicsEvolution::ExecuteStorageCompression(EnvironmentMatrix& p_matrix) noexcept {
+    auto& target_buffer = p_matrix.get_write_buffer();
+    uint64_t current_active_total = p_matrix.get_active_count();
+
+    // Skip over fixed system attractors resting at head slots [0, 1, 2, 3] to preserve system geometry
+    constexpr uint64_t infrastructure_offset = 4;
+    if (current_active_total <= infrastructure_offset) return;
+
+    uint64_t scan_idx = infrastructure_offset;
+    uint64_t last_active_idx = current_active_total - 1;
+
+    // Direct, branchless pointer array squeeze pass executing completely inside raw memory blocks
+    while (scan_idx <= last_active_idx) {
+        if (!target_buffer[scan_idx].is_active) {
+            // Find the trailing active edge element from the tail of the array block
+            while (last_active_idx > scan_idx && !target_buffer[last_active_idx].is_active) {
+                --last_active_idx;
+            }
+
+            if (last_active_idx > scan_idx) {
+                // Squeeze out the vacancy instantly: Overwrite holes using direct bitwise register assignment
+                target_buffer[scan_idx] = target_buffer[last_active_idx];
+                target_buffer[scan_idx].agent_id = static_cast<uint32_t>(scan_idx); // Realign structural index tracker
+                target_buffer[last_active_idx].is_active = false;
+                --last_active_idx;
+            }
+        }
+        ++scan_idx;
+    }
+
+    // Flush the optimized layout boundaries down to the Environment Matrix telemetry register
+    p_matrix.set_active_count(last_active_idx + 1);
+
+} // namespace stellar_agents

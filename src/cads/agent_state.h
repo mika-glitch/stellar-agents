@@ -6,32 +6,27 @@
 
 namespace stellar_agents {
 
-    // ============================================================================
-    // CADS AGENT CLASSIFICATION TAXONOMY
-    // Defines the behavioral processing group of an individual adaptive entity.
-    // Gates compilation routing inside the parallel optimization layers.
-    // ============================================================================
+    // Unique core identification markers mapped from your functional pipeline
     enum class AgentType : uint8_t {
-        ATTRACTOR,  // Macroscopic phase-space anchors (Stars, Black Holes) enforcing global boundaries.
-        PASSIVE,    // Non-adaptive entities (Asteroids, Space Debris) driven entirely by conservative field potentials.
-        ADAPTIVE    // Complex homeostatic intelligence (Ships, Autonomous Swarms) running dissipative loops.
+        ATTRACTOR = 0,
+        PASSIVE = 1,
+        ADAPTIVE = 2
     };
 
     // ============================================================================
-    // SOLID CACHE-ALIGNED AGENT STATE RECORD
-    // Flat, layout-stable structure designed for high-throughput stream processing.
-    // Suppresses polymorphic overhead (No virtual tables) to maximize L1/L2 data cache hit rates.
+    // CADER AGENT CORE DATA STRUCTURE (FLAT CUSTOM DATA-ORIENTED DESIGN)
+    // Clean-Code enforcement: Strictly standalone block to suppress C1014 loops.
+    // Maps perfectly to the usage in your physics and render subsystems.
     // ============================================================================
     struct AgentState {
-        Vector3 position{ 0.0f, 0.0f, 0.0f };    // 3D Cartesian coordinates in unwarped Euclidean space
-        Vector3 velocity{ 0.0f, 0.0f, 0.0f };    // Instantaneous linear velocity translation vectors
-        Color color{ WHITE };                    // Normalized standard hardware draw color payload
-        uint32_t agent_id{ 0 };                  // Globally unique entity identification register index
-        AgentType type{ AgentType::PASSIVE };    // Dynamic behavioral routing classifier token
-        bool is_active{ true };                  // Thread-safe operational visibility and simulation status flag
+        Vector3 position{ 0.0f, 0.0f, 0.0f };    // 12 Bytes
+        Vector3 velocity{ 0.0f, 0.0f, 0.0f };    // 12 Bytes
+        Color color{ WHITE };                    // 4 Bytes
+        uint32_t agent_id{ 0 };                  // 4 Bytes
+        AgentType type{ AgentType::PASSIVE };    // 1 Byte
+        bool is_active{ true };                  // 1 Byte
     };
 
 } // namespace stellar_agents
 
 #endif // AGENT_STATE_H
-#pragma once
