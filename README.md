@@ -1,24 +1,18 @@
+![ALPHA Preview](./assets/alpha-preview.png)
 ```
 .      *             .       .           *      .        .       .   *   
    .        .        .      *        .       .       .       .        .
         *        .      S T E L L A R - A G E N T S   .          *             
     .       .     .                             .       .     .       .    
    *   .      .        .      *        .       .   *     *   .      .      
-        .      *             .       .           *            .      *       
-
                       ALPHA RELEASE - WORK IN PROGRESS
 
-```
-![ALPHA Preview](./assets/alpha-preview.png)
-```
-
-A project to make an AI Sandbox for interactive agents moving thrugh relativistic
+An AI Sandbox for interactive agents moving thrugh relativistic
 conditions around a black hole. 
 
 Core Engineer: Mika Rattay
 Project Classification: AI Open-World Simulation Sandbox
 Standard Specification: ISO/IEC C++20 Language Compliant Pipeline
-
 
 ---
 To maintain a strict 16.6ms real-time execution deadline for 1.5 million entities,
