@@ -8,6 +8,11 @@
 
         WARNING: ALPHA RELEASE - WORK IN PROGRESS - NOT FOR DISTRIBUTION OR COMMERCIAL USE
 
+## 📊 Relativstische Simulations-Telemetrie
+```
+![ALPHA Preview](./assets/alpha-preview.png)
+```
+
 A project to make an AI Sandbox for interactive agents moving thru relativistic
 conditions around an unstable black hole. Agents include planets, asteroids,
 ships, stations, etc..
