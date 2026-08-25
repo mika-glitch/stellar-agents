@@ -1,27 +1,26 @@
 ```
-.      *             .       .           *      .        .       .      *        .       .   *   .      .
-    .       .        .        .      *        .       .       .       .        .        .      *        .
-        *        .      S T E L L A R - A G E N T S   .          *        .      *        .      *        
-    .       .     .                             .       .     .       .     .                             .
-   *   .      .        .      *        .       .   *     *   .      .        .      *        .       .   *
-        .      *             .       .           *            .      *             .       .           *      
+.      *             .       .           *      .        .       .   *   
+   .        .        .      *        .       .       .       .        .
+        *        .      S T E L L A R - A G E N T S   .          *             
+    .       .     .                             .       .     .       .    
+   *   .      .        .      *        .       .   *     *   .      .      
+        .      *             .       .           *            .      *       
 
-        WARNING: ALPHA RELEASE - WORK IN PROGRESS - NOT FOR DISTRIBUTION OR COMMERCIAL USE
+                      ALPHA RELEASE - WORK IN PROGRESS
 
-## 📊 Relativstische Simulations-Telemetrie
 ```
 ![ALPHA Preview](./assets/alpha-preview.png)
 ```
 
-A project to make an AI Sandbox for interactive agents moving thru relativistic
-conditions around an unstable black hole. Agents include planets, asteroids,
-ships, stations, etc..
+A project to make an AI Sandbox for interactive agents moving thrugh relativistic
+conditions around a black hole. 
 
 Core Engineer: Mika Rattay
 Project Classification: AI Open-World Simulation Sandbox
 Standard Specification: ISO/IEC C++20 Language Compliant Pipeline
 
 
+---
 To maintain a strict 16.6ms real-time execution deadline for 1.5 million entities,
 the simulation framework utilizes an analytical Schwarzschild metric space across
 both the CPU kinematics loop and the GPU graphics pipeline. 
