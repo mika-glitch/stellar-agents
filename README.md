@@ -1,4 +1,4 @@
-![ALPHA Preview](./assets/alpha-preview.png)
+![ALPHA Preview](./assets/alpha-1.0.png)
 ```
 .      *             .       .           *      .        .       .   *   
    .        .        .      *        .       .       .       .        .
