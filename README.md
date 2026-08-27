@@ -95,22 +95,16 @@ stellar-agents/
 
 This project eschews traditional Object-Oriented Programming (OOP) paradigms in favor of a strict **Structure of Arrays (SoA)** memory layout, ensuring maximum cache coherency for CPU-bound AI logic (such as spatial partitioning and swarm kinematics) while directly interfacing with hardware-instanced GPU buffers.
 
-## Core Architecture & Features
+## Core Systems Architecture
 
 ### 1. Data-Oriented Entity Management (AI-Ready)
-*   **SoA Memory Layout:** Entity spatial data (position, rotation, velocity, scale) and material identifiers are stored in contiguous memory arrays. This minimizes L1/L2 cache misses during high-frequency AI updates.
-*   **Zero-Copy GPU Upload:** The C++ SoA buffers align perfectly with the graphics API instance data layouts, allowing $O(1)$ memory mapping directly to VRAM.
-*   **Scalability:** Capable of maintaining rigid 60+ FPS bounds while processing kinematics for 2,500,000 independent agents on a modern CPU architecture (e.g., AMD Ryzen 9000 series).
+* **SoA Memory Layout:** Entity spatial data (position, rotation, velocity, scale) and material identifiers are stored in contiguous memory arrays to minimize L1/L2 cache misses during high-frequency updates.
+* **Zero-Copy GPU Upload:** C++ SoA buffers align with graphics API instance data layouts, enabling O(1) memory mapping directly to VRAM.
+* **Scalability:** Capable of maintaining rigid 60+ FPS bounds while processing kinematics for 2,500,000 independent agents on modern multi-core architectures.
 
-### 2. Procedural Geometric Generation
-*   **Topological Algorithms:** Dynamic runtime generation of mesh manifolds.
-*   **Subdivided Primitive Noise:** Procedural evaluation of spatial noise to generate irregular, morphologically accurate high-density volumes (e.g., carbonaceous and silicate debris) using flat-shaded vertex unrolling for sharp angular features.
-*   **Vector-Aligned Chassis:** Directional tetrahedral primitives generated for autonomous navigational units.
-
-### 3. Relativistic Graphics Pipeline (Vulkan / bgfx)
-*   **Volumetric Raymarching:** A custom screen-space raymarching fragment shader evaluates non-euclidean light paths around a simulated gravitational singularity (Black Hole), including an accretion disk, Doppler beaming, and a procedural deep-space skybox.
-*   **Screen-Space Gravitational Lensing (Instancing Hack):** Implemented a high-performance optical illusion in the vertex shader. Instead of deforming individual vertices of 2.5 million meshes (which causes geometric tearing), the shader computes a 2D apparent-position shift in clip-space based on the instance's center of mass. This allows massive instanced geometries to optically bend around the singularity with near-zero frame time cost.
-
+### 2. Relativistic Graphics Pipeline (Vulkan / bgfx)
+* **Volumetric Raymarching:** Custom screen-space raymarching fragment shader evaluating non-euclidean light paths around a simulated gravitational singularity (Black Hole), including an accretion disk, Doppler beaming, and a procedural deep-space skybox.
+* **Screen-Space Gravitational Lensing (Instancing Hack):** A high-performance optical illusion implemented in the vertex shader. Instead of deforming individual vertices of 2.5 million meshes (which causes geometric tearing), the shader computes a 2D apparent-position shift in clip-space based on the instance's center of mass, achieving relativistic optical bending with near-zero frame time cost.
 ## Technology Stack
 *   **Language:** ISO C++20
 *   **Graphics API Abstractor:** bgfx (Targeting Vulkan/DirectX12)
@@ -120,18 +114,21 @@ This project eschews traditional Object-Oriented Programming (OOP) paradigms in 
 The current framework establishes the foundational constraints for mass-entity rendering. Upcoming iterations will introduce:
 1.  **Dynamic Spatial Partitioning (Octree / Grid Hash):** $O(\log n)$ neighbor-search algorithms for collision avoidance.
 2.  **Autonomous Kinematics:** Implementation of separation, alignment, and cohesion vectors for emergent swarm behavior.
+3.  **Get DirectX12 to work with bgfx**: Integrate DirectX12 backend for Windows-specific optimizations.
 
-[PROTOTYPE STATUS: COMPLIANT & LIVE]
-----------------------------------------------------------------------------
-* Low-Level DoD Infrastructure & Zero-Heap Execution: 
-  Strict zero-allocation runtime pipeline. Memory is packed in cache-aligned 
-  flat arrays to maximize L1/L2 cache efficiency, allowing 150,000+ active 
-  simulation entities to stream effortlessly without object-oriented pointer-
-  chasing overhead.
+### System Status & Technical Architecture
 
-[PRODUCTION ROADMAP: CONCEPT & ARCHITECTURE PLANNED]
-----------------------------------------------------------------------------
-* Spatial Partitioning.
+#### 🟢 [PROTOTYPE STATUS: COMPLIANT & LIVE]
+* **Low-Level DoD Infrastructure & Zero-Heap Execution:** 
+  Strict zero-allocation runtime pipeline. Memory is packed in cache-aligned flat arrays to maximize L1/L2 cache efficiency, allowing **2,500,000** active simulation entities to stream effortlessly without object-oriented pointer-chasing overhead.
+* **Vulkan Graphics Backend:** 
+  Fully integrated and live hardware-accelerated pipeline providing low-overhead command buffer submissions and direct VRAM memory mapping.
+* **Relativistic Shader Suite:** 
+  Complete and optimized GLSL shader pipeline featuring volumetric raymarching for accretion disks, Doppler beaming, and screen-space vertex transformations for relativistic optical lensing.
+
+#### 🟡 [PRODUCTION ROADMAP: CONCEPT & ARCHITECTURE PLANNED]
+* **Spatial Partitioning & Environment Matrix:** 
+  Advanced grid-based spatial partitioning architectures for localized neighborhood querying and non-linear environment feedback routing at scale.
 
 ============================================================================
 Domain: Physics Evolution Loop / Agent Deallocation Thresholds
