@@ -181,7 +181,7 @@ PROJECT: STELLAR-AGENTS — CORE REFERENCE PARADIGM: COORDINATE TOPOLOGY
      the hardware mantissa maintains a precise step delta of ~0.00012f Units, 
      ensuring a stable, jitter-free resolution down to ~120 meters.
    - GRAVITATIONAL MASS SCALING: Real-world solar masses (M_sol) are too small 
-     in relative scalar value (e.g., Hamsa I = 0.000025 M_sol) to drive standard 
+     in relative scalar value (e.g., Planet I = 0.000025 M_sol) to drive standard 
      32-bit float Newtonian kinematics without severe underflow and loss of 
      kinetic force. To bypass this, masses are mapped to simple runtime floats via 
      a compile-time scale constant (k_mass = 40.0f). The fixed barycenter mass 
@@ -189,58 +189,10 @@ PROJECT: STELLAR-AGENTS — CORE REFERENCE PARADIGM: COORDINATE TOPOLOGY
      attraction vectors safely above the numerical floating-point noise floor.
 
 3. INITIAL SIMULATION TOPOLOGY MATRIX (MASSES CALIBRATED IN M_SOL)
-   - OBJECT 0 (KHARESH): [0.0f, 0.0f, 0.0f] — Fixed Barycenter / Attractor (Mass: 15.0000 M_sol)
-   - OBJECT 1 (HAMSA I): [650.0f, 0.0f, 0.0f] — Active Orbital Core (Mass: 0.000025 M_sol)
-   - OBJECT 2 (HAMSA II): [-1414.2f, 0.0f, 1414.2f] — Active Orbital Giant (Mass: 0.000266 M_sol)
-   - OBJECT 3 (BANSHEE JUMP POINT): [1767.7f, 0.0f, -1767.7f] — Inertial Adaptive Spawner
-                                   Lore (fair use)
-
-============================================================================
-OFFICIAL UEE ASTROMETRIC SURVEY — THE HAMSA SYSTEM [ALPHA-2946 REGISTRY]
-Configuration Matrix: Astrophysical System Modeling Data
-Target Domain: Fringe System / Outer Banu Border Sector
-============================================================================
-
-1. SYSTEM BARYCENTER: KHARESH
-   - Object Type: Intermediate-Stellar Mass Black Hole (BH)
-   - Evolutionary History: Remnant core of a high-mass Type-O Blue Giant
-     that underwent core-collapse supernova.
-   - Estimated Mass: ~14.8 to 15.2 Solar Masses (M☉) 
-     [Approx. 2.94e31 kg to 3.02e31 kg]
-   - Event Horizon Bounds: Schwarzschild Radius (Rs) estimated at ~44.3 km.
-   - Positional Matrix: [0.00, 0.00, 0.00] (System Origin Point)
-
-2. INNER ORBITAL BOUNDARY: HAMSA I (CHTHONIAN CORE REMNANT)
-   - Object Type: Captured Rogue Planet / Stripped Degenerate Core
-   - Evolutionary History: Formerly a Class-II gas giant captured by the
-     pre-collapse star. Massive hydrodynamic atmospheric escape and
-     extreme tidal shearing stripped the outer envelopes down to the mantle.
-   - Estimated Mass: ~8.2 Earth Masses (M⊕) [Approx. 4.89e25 kg]
-   - Structural Density: ~12.4 g/cm³ (Highly compressed iron-nickel-silicate core).
-   - Mean Orbital Radius: ~15,000.0 Megameters (MM) / 15.0 Gigameters (GM)
-   - Positional Matrix Vector: [15000.0, 0.0, 0.0] (Apastron reference node)
-
-3. MID-ACCEDING SYSTEM SECTOR: HAMSA II (SUB-JOVIAN GAS GIANT)
-   - Object Type: Accretion-Disk Formed Jovian World
-   - Evolutionary History: Coalesced in the massive dust-gaseous ring of the
-     accretion disc outside the primary tidal destruction zone.
-   - Estimated Mass: ~88.5 Earth Masses (M⊕) [Approx. 5.28e26 kg]
-   - Atmospheric Profile: Methane-rich volatile envelope. Extreme internal
-     mantle pressures trigger the thermodynamic decomposition of gaseous methane
-     into allotropic carbon precipitation, resulting in non-stop diamond rain.
-   - Mean Orbital Radius: ~45,000.0 Megameters (MM) / 45.0 Gigameters (GM)
-   - Positional Matrix Vector: [-31819.8, 0.0, 31819.8] (Orbitally shifted angle)
-
-4. EXTERIOR SYSTEM SYSTEM ESCAPE ROUTE: BANSHEE JUMP POINT GATEWAY
-   - Object Type: Large-Scale Wormhole Instability Interface
-   - Classification: Large Capital Clearance Hull Gateway (Bidirectional)
-   - Dynamics: The only verified stable exit trajectory bypassing the gravitational
-     well of the central black hole. Requires high-thrust engine corrections
-     to compensate for macro-gravitational drag streams.
-   - Positional Matrix Vector: [63639.6, 0.0, -63639.6] (Parked at outer gravity drop threshold)
-
-
-
+   - OBJECT 0 (BLACK HOLE): [0.0f, 0.0f, 0.0f] — Fixed Barycenter / Attractor (Mass: 15.0000 M_sol)
+   - OBJECT 1 (PLANET I): [650.0f, 0.0f, 0.0f] — Active Orbital Core (Mass: 0.000025 M_sol)
+   - OBJECT 2 (PLANET II): [-1414.2f, 0.0f, 1414.2f] — Active Orbital Giant (Mass: 0.000266 M_sol)
+   - OBJECT 3 (GATEWAY): [1767.7f, 0.0f, -1767.7f] — Inertial Adaptive Spawner
 
 AGENT CLASS          MAX CPU CAPACITY    MAX GPU CAPACITY     LIMITING HARDWARE FACTOR
 ----------------------------------------------------------------------------
@@ -258,8 +210,5 @@ adaptive_agent       ~100,000            ~2,500,000           CPU: L1/L2 Cache M
 ### 📡 Data and Lore Attribution
 The source code contained within this repository is a completely independent, agnostic, custom Data-Oriented Design (DoD) simulation environment licensed under the open-source MIT terms. 
 
-For visualization benchmarking and physics reference scaling within this repository, the initial configuration matrices, coordinate data, and orbital topologies are explicitly modeled after the official astrophysical data of the **Hamsa System (Kharesh, Hamsa I, Hamsa II, and the Banshee Gateway)** from the *Star Citizen* universe.
-
 ### 🛡️ Intellectual Property Notice
-- All fictional star system profiles, lore descriptions, character/faction designations, and specific astronomical names are the sole and exclusive Intellectual Property (IP) of **Cloud Imperium Games (CIG)** and **Roberts Space Industries (RSI)**.
 - This framework is a non-commercial, transformative, educational sandbox project developed under **Fair Use** principles solely for real-time high-performance computing (HPC) research and architectural demonstrations.
