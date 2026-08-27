@@ -13,7 +13,46 @@ conditions around a black hole.
 Core Engineer: Mika Rattay
 Project Classification: AI Open-World Simulation Sandbox
 Standard Specification: ISO/IEC C++20 Language Compliant Pipeline
+```
+WORK IN PROGRESS 
 
+# Stellar Agents: High-Performance Relativistic Simulation Sandbox
+
+> **A bare-metal C++20 / bgfx research sandbox engineered to benchmark high-density Complex Adaptive Dynamical Systems (CADS) under extreme gravitational and relativistic stress.**
+
+---
+
+## 🚀 Architectural Overview
+
+`stellar-agents` is built to solve a core problem in modern engine development: scaling millions of concurrent agent states without hitting memory bottlenecks, cache thrashing, or pointer-chasing overhead. 
+
+By completely bypassing traditional Object-Oriented Programming (OOP) and virtual table bloat, this framework enforces strict **Data-Oriented Design (DoD)** principles to saturate CPU L1/L2 caches and stream raw data straight into the GPU pipeline.
+
+### Core Technical Pillars
+
+* **Pure Data-Oriented Design (DoD):** All entity states (`AgentState`) are stored in contiguous, layout-stable, flat memory records optimized for 64-byte L1 cache-line alignment, validated at compile-time via C++20 Concepts.
+* **Block-Free Multithreading:** Utilizes modern C++20 `std::jthread` worker pools with cooperative stop-tokens. Data isolation is maintained via double-buffering matrices (`EnvironmentMatrix`) coupled with atomic pointer `std::swap` operations at the frame barrier to completely eliminate mutex stalls.
+* **GPU-Accelerated Graphics Pipeline:** The main thread executes zero coordinate transformations, acting as a stateless consumer that bulk-streams raw Euclidean data points directly into VRAM via `bgfx`.
+* **Relativistic Shaders:** Features custom GLSL pipelines, including a volumetric raymarching fragment shader for accretion disks (`accretion.frag`) and a vertex-shader optical transformation handling screen-space Einstein gravitational lensing (`lensing.vert`).
+
+---
+
+## 📊 Performance Benchmark Profile
+
+* **Active Entities:** 2,500,000 concurrent particles/vessels.
+* **Environment:** Orbital mechanics around a central Kerr/Schwarzschild black hole barycenter.
+* **Hardware Target:** Multi-core x86-64 consumer silicon (optimized via `/arch:AVX2 /fp:fast`).
+* **Frame Rate:** Stable real-time execution bounds.
+
+---
+
+## 🛠️ Tech Stack & Build System
+
+* **Language Standard:** ISO/IEC C++20
+* **Graphics API Abstraction:** `bgfx` / `shaderc`
+* **Build System:** Cross-platform CMake pipeline
+* **License:** MIT
+```
 stellar-agents/
 ├── src/                                
 │   ├── main.cpp                        # Application entry point and primary process lifecycle orchestration.
@@ -48,9 +87,7 @@ stellar-agents/
 │       ├── instancing.varying.def.sc   # Interpolation variable declarations for the instancing pipeline.
 │       ├── lensing.vert                # Legacy per-vertex 3D spatial deformation (Scientific computing reference).
 │       └── varying.def.sc              # Standard interpolation variable declarations for base rendering passes.
-
-WORK IN PROGRESS 
-
+```
 # Stellar Agents: High-Density Kinematic AI & Rendering Framework
 
 ## Overview
