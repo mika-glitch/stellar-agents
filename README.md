@@ -5,9 +5,9 @@
         *        .      S T E L L A R - A G E N T S   .          *             
     .       .     .                             .       .     .       .    
    *   .      .        .      *        .       .   *     *   .      .      
-                      		ALPHA RELEASE
+                  ALPHA RELEASE
 
-An AI sandbox for adaptive agents moving through a relativistic spacetime
+An AI sandbox for adaptive agents moving through relativistic spacetime
 conditions around a black hole. 
 
 Core Engineer: Mika Rattay
@@ -121,14 +121,6 @@ The current framework establishes the foundational constraints for mass-entity r
 1.  **Dynamic Spatial Partitioning (Octree / Grid Hash):** $O(\log n)$ neighbor-search algorithms for collision avoidance.
 2.  **Autonomous Kinematics:** Implementation of separation, alignment, and cohesion vectors for emergent swarm behavior.
 
-============================================================================
-ENGINE ARCHITECTURE & SPATIAL INTEGRATION 
-============================================================================
-This multi-agent simulation core is built from the ground up using strict 
-Data-Oriented Design (DoD) and cache-linear data structures. The underlying 
-paradigms address the exact low-level optimization challenges found in modern 
-large-scale game engines.
-
 [PROTOTYPE STATUS: COMPLIANT & LIVE]
 ----------------------------------------------------------------------------
 * Low-Level DoD Infrastructure & Zero-Heap Execution: 
@@ -139,7 +131,7 @@ large-scale game engines.
 
 [PRODUCTION ROADMAP: CONCEPT & ARCHITECTURE PLANNED]
 ----------------------------------------------------------------------------
-Spatial Partitioning.
+* Spatial Partitioning.
 
 ============================================================================
 Domain: Physics Evolution Loop / Agent Deallocation Thresholds
@@ -157,53 +149,6 @@ Domain: Physics Evolution Loop / Agent Deallocation Thresholds
    - Inside ISCO: Orbital dynamics collapse. Forces irreversible terminal spiral.
    - Core Loop: Ships remain fully rendered and processed through the plunge.
    - Deallocation Gate: Explicit destruction occurs only upon crossing Rs.
-============================================================================
-
-                                   Lore (fair use)
-
-============================================================================
-OFFICIAL UEE ASTROMETRIC SURVEY — THE HAMSA SYSTEM [ALPHA-2946 REGISTRY]
-Configuration Matrix: Astrophysical System Modeling Data
-Target Domain: Fringe System / Outer Banu Border Sector
-============================================================================
-
-1. SYSTEM BARYCENTER: KHARESH
-   - Object Type: Intermediate-Stellar Mass Black Hole (BH)
-   - Evolutionary History: Remnant core of a high-mass Type-O Blue Giant
-     that underwent core-collapse supernova.
-   - Estimated Mass: ~14.8 to 15.2 Solar Masses (M☉) 
-     [Approx. 2.94e31 kg to 3.02e31 kg]
-   - Event Horizon Bounds: Schwarzschild Radius (Rs) estimated at ~44.3 km.
-   - Positional Matrix: [0.00, 0.00, 0.00] (System Origin Point)
-
-2. INNER ORBITAL BOUNDARY: HAMSA I (CHTHONIAN CORE REMNANT)
-   - Object Type: Captured Rogue Planet / Stripped Degenerate Core
-   - Evolutionary History: Formerly a Class-II gas giant captured by the
-     pre-collapse star. Massive hydrodynamic atmospheric escape and
-     extreme tidal shearing stripped the outer envelopes down to the mantle.
-   - Estimated Mass: ~8.2 Earth Masses (M⊕) [Approx. 4.89e25 kg]
-   - Structural Density: ~12.4 g/cm³ (Highly compressed iron-nickel-silicate core).
-   - Mean Orbital Radius: ~15,000.0 Megameters (MM) / 15.0 Gigameters (GM)
-   - Positional Matrix Vector: [15000.0, 0.0, 0.0] (Apastron reference node)
-
-3. MID-ACCEDING SYSTEM SECTOR: HAMSA II (SUB-JOVIAN GAS GIANT)
-   - Object Type: Accretion-Disk Formed Jovian World
-   - Evolutionary History: Coalesced in the massive dust-gaseous ring of the
-     accretion disc outside the primary tidal destruction zone.
-   - Estimated Mass: ~88.5 Earth Masses (M⊕) [Approx. 5.28e26 kg]
-   - Atmospheric Profile: Methane-rich volatile envelope. Extreme internal
-     mantle pressures trigger the thermodynamic decomposition of gaseous methane
-     into allotropic carbon precipitation, resulting in non-stop diamond rain.
-   - Mean Orbital Radius: ~45,000.0 Megameters (MM) / 45.0 Gigameters (GM)
-   - Positional Matrix Vector: [-31819.8, 0.0, 31819.8] (Orbitally shifted angle)
-
-4. EXTERIOR SYSTEM SYSTEM ESCAPE ROUTE: BANSHEE JUMP POINT GATEWAY
-   - Object Type: Large-Scale Wormhole Instability Interface
-   - Classification: Large Capital Clearance Hull Gateway (Bidirectional)
-   - Dynamics: The only verified stable exit trajectory bypassing the gravitational
-     well of the central black hole. Requires high-thrust engine corrections
-     to compensate for macro-gravitational drag streams.
-   - Positional Matrix Vector: [63639.6, 0.0, -63639.6] (Parked at outer gravity drop threshold)
 
 ============================================================================
 PROJECT: STELLAR-AGENTS — CORE REFERENCE PARADIGM: COORDINATE TOPOLOGY
@@ -251,13 +196,54 @@ PROJECT: STELLAR-AGENTS — CORE REFERENCE PARADIGM: COORDINATE TOPOLOGY
    - OBJECT 1 (HAMSA I): [650.0f, 0.0f, 0.0f] — Active Orbital Core (Mass: 0.000025 M_sol)
    - OBJECT 2 (HAMSA II): [-1414.2f, 0.0f, 1414.2f] — Active Orbital Giant (Mass: 0.000266 M_sol)
    - OBJECT 3 (BANSHEE JUMP POINT): [1767.7f, 0.0f, -1767.7f] — Inertial Adaptive Spawner
+                                   Lore (fair use)
 
 ============================================================================
-PROJECT: STELLAR-AGENTS — PERFORMANCE PROFILE: HARDWARE SATURATION MATRIX
-Target Context: CIG Technical Review [JOBREQ003 — AI Programmer Framework]
-Frame Budget: Strict 16.6ms Real-Time Deadline (60 FPS Baseline Target)
-Hardware Baseline: Modern Consumer x86_64 CPU (32 Threads, AVX-512) & Discrete GPU
+OFFICIAL UEE ASTROMETRIC SURVEY — THE HAMSA SYSTEM [ALPHA-2946 REGISTRY]
+Configuration Matrix: Astrophysical System Modeling Data
+Target Domain: Fringe System / Outer Banu Border Sector
 ============================================================================
+
+1. SYSTEM BARYCENTER: KHARESH
+   - Object Type: Intermediate-Stellar Mass Black Hole (BH)
+   - Evolutionary History: Remnant core of a high-mass Type-O Blue Giant
+     that underwent core-collapse supernova.
+   - Estimated Mass: ~14.8 to 15.2 Solar Masses (M☉) 
+     [Approx. 2.94e31 kg to 3.02e31 kg]
+   - Event Horizon Bounds: Schwarzschild Radius (Rs) estimated at ~44.3 km.
+   - Positional Matrix: [0.00, 0.00, 0.00] (System Origin Point)
+
+2. INNER ORBITAL BOUNDARY: HAMSA I (CHTHONIAN CORE REMNANT)
+   - Object Type: Captured Rogue Planet / Stripped Degenerate Core
+   - Evolutionary History: Formerly a Class-II gas giant captured by the
+     pre-collapse star. Massive hydrodynamic atmospheric escape and
+     extreme tidal shearing stripped the outer envelopes down to the mantle.
+   - Estimated Mass: ~8.2 Earth Masses (M⊕) [Approx. 4.89e25 kg]
+   - Structural Density: ~12.4 g/cm³ (Highly compressed iron-nickel-silicate core).
+   - Mean Orbital Radius: ~15,000.0 Megameters (MM) / 15.0 Gigameters (GM)
+   - Positional Matrix Vector: [15000.0, 0.0, 0.0] (Apastron reference node)
+
+3. MID-ACCEDING SYSTEM SECTOR: HAMSA II (SUB-JOVIAN GAS GIANT)
+   - Object Type: Accretion-Disk Formed Jovian World
+   - Evolutionary History: Coalesced in the massive dust-gaseous ring of the
+     accretion disc outside the primary tidal destruction zone.
+   - Estimated Mass: ~88.5 Earth Masses (M⊕) [Approx. 5.28e26 kg]
+   - Atmospheric Profile: Methane-rich volatile envelope. Extreme internal
+     mantle pressures trigger the thermodynamic decomposition of gaseous methane
+     into allotropic carbon precipitation, resulting in non-stop diamond rain.
+   - Mean Orbital Radius: ~45,000.0 Megameters (MM) / 45.0 Gigameters (GM)
+   - Positional Matrix Vector: [-31819.8, 0.0, 31819.8] (Orbitally shifted angle)
+
+4. EXTERIOR SYSTEM SYSTEM ESCAPE ROUTE: BANSHEE JUMP POINT GATEWAY
+   - Object Type: Large-Scale Wormhole Instability Interface
+   - Classification: Large Capital Clearance Hull Gateway (Bidirectional)
+   - Dynamics: The only verified stable exit trajectory bypassing the gravitational
+     well of the central black hole. Requires high-thrust engine corrections
+     to compensate for macro-gravitational drag streams.
+   - Positional Matrix Vector: [63639.6, 0.0, -63639.6] (Parked at outer gravity drop threshold)
+
+
+
 
 AGENT CLASS          MAX CPU CAPACITY    MAX GPU CAPACITY     LIMITING HARDWARE FACTOR
 ----------------------------------------------------------------------------
@@ -269,11 +255,6 @@ passive_agent        ~15,000,000         ~250,000,000         CPU: RAM Bandwidth
 
 adaptive_agent       ~100,000            ~2,500,000           CPU: L1/L2 Cache Misses via Branches.
 (Ships)                                                       GPU: Register Pressure & Divergence.
-
-============================================================================
-BENCHMARK LOG INDEX COMPLETED // CONTIGUOUS STORAGE ALLOCATION VERIFIED
-============================================================================
-
 
 ## ⚖️ Legal Disclaimer & Fair Use Notice
 
