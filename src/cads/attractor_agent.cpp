@@ -1,57 +1,79 @@
-#include "agent_state.h"
-#include "engine_config.h"
-#include "raymath.h"
+// ============================================================================
+// [Core/Simulation] ATTRACTOR AGENT STATE MUTATOR (STRUCTURE OF ARRAYS)
+// Description: Mutates gravitational attractor states using Keplerian orbital mechanics.
+//              Adapted from original attractor logic[cite: 15].
+// Standard: ISO C++20
+// ============================================================================
+#include "engine/engine_config.h"
+#include "cads/environment_matrix.h"
 #include <cmath>
 
 namespace stellar_agents {
 
     // ============================================================================
-    // CADS ATTRACTOR AGENT STATE MANAGEMENT OPERATOR
-    // Standard compliance: Fully scoped within the core functional namespace.
-    // Updates macro-nodes (Planets) via synchronous deterministic orbit-tracks.
+    // ATTRACTOR AGENT STATE MUTATION OPERATOR (SoA INDEX-BASED)
     // ============================================================================
-    void MutateAttractorAgentState(
-        const AgentState& p_current_state,
-        AgentState& p_next_state,
-        const float p_execution_time) noexcept
+    void MutateAttractorAgentSoA(
+        EnvironmentBuffersSoA& buffer,
+        uint64_t i,
+        float execution_time) noexcept
     {
-        // Object 0 (Black Hole) rests absolute static at the origin vector
-        if (p_current_state.agent_id == 0) [[unlikely]] {
-            p_next_state = p_current_state;
+        uint32_t agent_id = buffer.agent_id[i];
+
+        // Primary singularity remains strictly static at the coordinate origin[cite: 15]
+        if (agent_id == 0) [[unlikely]] {
             return;
         }
 
-        Vector3 nextPosition = p_current_state.position;
-        Vector3 nextVelocity = p_current_state.velocity;
+        float x = 0.0f;
+        float y = 0.0f;
+        float z = 0.0f;
+        float time_scale = 1.0f;
 
-        // Deterministic Keplerian orbit rail logic for the anonymized planetary cores
-        if (p_current_state.agent_id == 1) {
-            // Object 1: Diamond Core Planet (Static Radius: 650 Megameters)
-            constexpr float orbitRadius = 650.0f;
-            // Angular velocity derived from the pre-scaled central black hole mass constant
-            float angularSpeed = std::sqrt(config::physics::black_hole_runtime_mass / (orbitRadius * orbitRadius * orbitRadius));
-            float currentAngle = p_execution_time * angularSpeed;
-
-            nextPosition = Vector3{ orbitRadius * std::cos(currentAngle), 0.0f, orbitRadius * std::sin(currentAngle) };
-            nextVelocity = Vector3{ -orbitRadius * angularSpeed * std::sin(currentAngle), 0.0f, orbitRadius * angularSpeed * std::cos(currentAngle) };
+        // Map identifier nodes to configured ephemeris parameters[cite: 15]
+        if (agent_id == 1) {
+            x = config::astrodynamics::inner_body_pos[0];
+            y = config::astrodynamics::inner_body_pos[1];
+            z = config::astrodynamics::inner_body_pos[2];
+            time_scale = 1.0f;
         }
-        else if (p_current_state.agent_id == 2) {
-            // Object 2: Gas Giant Planet (Static Radius: 2000 Megameters)
-            constexpr float orbitRadius = 2000.0f;
-            float angularSpeed = std::sqrt(config::physics::black_hole_runtime_mass / (orbitRadius * orbitRadius * orbitRadius));
-            float currentAngle = (p_execution_time * angularSpeed) + PI; // Phase-shifted by 180 degrees
-
-            nextPosition = Vector3{ orbitRadius * std::cos(currentAngle), 0.0f, orbitRadius * std::sin(currentAngle) };
-            nextVelocity = Vector3{ -orbitRadius * angularSpeed * std::sin(currentAngle), 0.0f, orbitRadius * angularSpeed * std::cos(currentAngle) };
+        else if (agent_id == 2) {
+            x = config::astrodynamics::outer_body_pos[0];
+            y = config::astrodynamics::outer_body_pos[1];
+            z = config::astrodynamics::outer_body_pos[2];
+            time_scale = 0.7f;
+        }
+        else if (agent_id == 3) {
+            x = config::astrodynamics::gateway_node_pos[0];
+            y = config::astrodynamics::gateway_node_pos[1];
+            z = config::astrodynamics::gateway_node_pos[2];
+            time_scale = 0.5f;
+        }
+        else {
+            return;
         }
 
-        // Flush the calculated orbital rail coordinates cleanly to the shadow buffer slice
-        p_next_state.position = nextPosition;
-        p_next_state.velocity = nextVelocity;
-        p_next_state.color = p_current_state.color;
-        p_next_state.agent_id = p_current_state.agent_id;
-        p_next_state.type = p_current_state.type;
-        p_next_state.is_active = true;
+        const float orbit_radius = std::sqrt(x * x + y * y + z * z);
+        if (orbit_radius < 0.0001f) [[unlikely]] {
+            return;
+        }
+
+        /**
+         * Keplerian Angular Speed Formulation
+         * Formula: $\omega = \sqrt{\frac{G \cdot M}{r^3}}$
+         */
+        const float initial_angle = std::atan2(z, x);
+        const float angular_speed = std::sqrt(config::physics::primary_attractor_runtime_mass / (orbit_radius * orbit_radius * orbit_radius));
+        const float current_angle = initial_angle + (execution_time * angular_speed * time_scale);
+
+        // Update parallel SoA position and velocity channels directly
+        buffer.pos_x[i] = orbit_radius * std::cos(current_angle);
+        buffer.pos_y[i] = y;
+        buffer.pos_z[i] = orbit_radius * std::sin(current_angle);
+
+        buffer.vel_x[i] = -orbit_radius * angular_speed * time_scale * std::sin(current_angle);
+        buffer.vel_y[i] = 0.0f;
+        buffer.vel_z[i] = orbit_radius * angular_speed * time_scale * std::cos(current_angle);
     }
 
 } // namespace stellar_agents

@@ -5,90 +5,87 @@
         *        .      S T E L L A R - A G E N T S   .          *             
     .       .     .                             .       .     .       .    
    *   .      .        .      *        .       .   *     *   .      .      
-                      ALPHA RELEASE - WORK IN PROGRESS
+                      		ALPHA RELEASE
 
-An AI Sandbox for interactive agents moving thrugh relativistic
+An AI sandbox for adaptive agents moving through a relativistic spacetime
 conditions around a black hole. 
 
 Core Engineer: Mika Rattay
 Project Classification: AI Open-World Simulation Sandbox
 Standard Specification: ISO/IEC C++20 Language Compliant Pipeline
 
----
-To maintain a strict 16.6ms real-time execution deadline for 1.5 million entities,
-the simulation framework utilizes an analytical Schwarzschild metric space across
-both the CPU kinematics loop and the GPU graphics pipeline. 
-
-The highly complex Kerr metric (rotating black hole spacetime) was intentionally 
-deallocated and omitted from the entire architecture. In an interactive sandbox,
-the micro-scale relativistic corrections of Kerr frame-dragging are mathematically
-negligible for short-term macro-trajectories and are completely decoupledfrom
-human visual perception. Standard Newtonian orbital physics combined with a clean,
-analytical O(1) Schwarzschild gravitational lensing pass yields a stable,
-jitter-free visual and physical output while maximizing SIMD vectorization
-and preventing VRAM thread divergence.
-
-### 📊 Metric Selection Matrix (1.5 Million Primitives @ 60 FPS Target)
-
-============================================================================
-PERFORMANCE PROFILE: GRAPHICS PIPELINE INSTRUCTION OVERHEAD (VULKAN/DX12)
-Target: 1.5 Million Contiguous Primitives @ 60 FPS (16.6ms Target)
-============================================================================
-
-METRIC LAYER               SCHWARZSCHILD (ANALYTIC)   KERR (NUMERICAL INTEGRATION)
-----------------------------------------------------------------------------
-Vertex Shader Compute Time  ~0.2 ms                    ~4.5 ms to 12.0 ms
-Instruction Complexity     O(1) Constant              O(N) Loop (Runge-Kutta 4)
-GPU ALU Saturated Lanes    ~5% (Cache Boundary)       ~85% (Compute Bound)
-Thread Divergence Risk     0% (Fully Synchronous)     High (Dynamic Loop Breaks)
-Frame Time Safety Margin   Maximum Margin             Critical (Risk of Drop)
-
-============================================================================
-
-============================================================================
-PROJECT: STELLAR-AGENTS G)
-============================================================================
 stellar-agents/
-├── CMakeLists.txt                 # Master build configuration (ISO C++20 standard, dynamic MSVC subproject compiler pass)
-├── README.md                      # Architecture documentation, metric selection matrix, and legal attribution
-│
-├── ext/                           # --- EXT-SECTOR: LOCAL UNCOMPILED THIRD-PARTY DEPENDENCIES ---
-│   └── raylib/                    # Pure, raw raylib git-source tree submodule (built inline from C primitives)
-│       ├── src/                   # Native framework source core containing raw definitions (raylib.h, rcore.c, rlgl.h)
-│       └── CMakeLists.txt         # Subproject orchestration file executing synchronous build target generations
-│
-└── src/                           # --- APPLICATION SOURCE INTERFACES ---
-    ├── main.cpp                   # System entry node (Anonymized data seeding, main game loop, chrono time-scaling)
-    │
-    ├── engine/                    # --- SECTOR 1: SIMULATION INFRASTRUCTURE ---
-    │   ├── render_core.h          
-    │   ├── render_core.cpp        # Low-overhead explicit batch rendering pipeline streaming line segments to VRAM
-    │   ├── physics_evolution.h    
-    │   └── physics_evolution.cpp  # Cooperative multi-threading engine managing jthread segment slicing and Swap-and-Pop GC
-    │
-    ├── cads/                      # --- SECTOR 2: COMPLEX ADAPTIVE DYNAMIC SYSTEMS (CADS) ---
-    │   ├── engine_config.h        # Compile-time static constants (Unified masses, Rs horizon, MM spatial conversion multipliers)
-    │   ├── agent_state.h          # Fixed cache-aligned structure footprints (Omit mass to double L1/L2 cache compression density)
-    │   ├── environment_matrix.h   
-    │   ├── environment_matrix.cpp # Dual shadow-slice array managers mapping lock-free allocation boundaries on application boot
-    │   │
-    │   # --- AUTONOMOUS BEHAVIORAL CORES (PURE MATHEMATICAL TRANSFORMATION MATRIXES) ---
-    │   ├── attractor_agent.cpp    # Deterministic Keplerian orbit rail logic for the anonymized planetary cores
-    │   ├── passive_agent.cpp      # Kinematics loop tracking massless geodetic acceleration trajectories within Schwarzschild fields
-    │   └── adaptive_agent.cpp     # Homeostatic decision-matrix throttling ship thrust vectors near boundary thresholds
-    │
-    ├── math/                      # --- SECTOR 3: MATHEMATICAL RESOLUTION FOUNDATION ---
-    │   ├── relativity.h           
-    │   └── relativity.cpp         # Analytical closed-form Schwarzschild deflection solvers built for synchronous register lanes
-    │
-    └── shaders/                   # --- SECTOR 4: VRAM GRAPHICS PIPELINE RESOURCING ---
-        ├── lensing.vert           # Externalized 32-bit Vulkan/DX12-compliant GLSL vertex space transformation pipeline
-        └── accretion.frag         # Procedural noise raymarcher executing volumetric thermodynamic boundary renderings
+├── src/                                
+│   ├── main.cpp                        # Application entry point and primary process lifecycle orchestration.
+│   │
+│   ├── cads/                           # Complex Adaptive Dynamical Systems (Behavior & State Logic)
+│   │   ├── adaptive_agent.cpp          # Autonomous decision heuristics and trajectory evaluation.
+│   │   ├── agent_state.h               # State machine definitions for high-frequency behavioral switching.
+│   │   ├── attractor_agent.cpp         # Gravitational/magnetic target acquisition and homing kinematics.
+│   │   ├── environment_matrix.cpp/.h   # Spatial partitioning structures for localized environmental querying.
+│   │   └── passive_agent.cpp           # Low-overhead kinematic updates for non-reactive particulate entities.
+│   │
+│   ├── engine/                         # Core Execution, Physics, and Rendering Systems
+│   │   ├── engine_config.h             # Compile-time constants and hardware capability bounds.
+│   │   ├── engine_context.h            # Global application state and cross-system memory pointers.
+│   │   ├── geometric_primitives.cpp/.h # Procedural topological generation for collision and render meshes.
+│   │   ├── kinematics_system.cpp/.h    # Deterministic integration of velocity, acceleration, and drag vectors.
+│   │   ├── physics_evolution.cpp/.h    # Global numerical solvers for entity translation over delta-time.
+│   │   ├── render_core.cpp/.h          # Graphics API abstraction and hardware command buffer submission.
+│   │   ├── telemetry_hud.cpp/.h        # Real-time performance profiling and statistical overlay rendering.
+│   │   ├── universe_seeder.cpp/.h      # Procedural initialization of the initial SoA memory payloads.
+│   │   └── window_manager.cpp/.h       # OS-level window context, input polling, and swapchain management.
+│   │
+│   ├── ext/                            # External dependencies (bgfx, bimg, bx, glfw).
+│   │
+│   ├── math/                           # Core Mathematics & Physics Formulations
+│   │   └── relativity.cpp/.h           # Non-euclidean space-time metrics and gravitational lensing equations.
+│   │
+│   └── shaders/                        # GPU Rendering Pipeline & Compute Programs
+│       ├── accretion.frag              # Volumetric raymarching, Doppler beaming, and procedural noise evaluation.
+│       ├── instancing_frag.sc          # Lambertian reflectance and photometric shading for mass-instanced agents.
+│       ├── instancing_vert.sc          # High-throughput vertex displacement and clip-space relativistic optical bending.
+│       ├── instancing.varying.def.sc   # Interpolation variable declarations for the instancing pipeline.
+│       ├── lensing.vert                # Legacy per-vertex 3D spatial deformation (Scientific computing reference).
+│       └── varying.def.sc              # Standard interpolation variable declarations for base rendering passes.
 
+WORK IN PROGRESS 
 
+# Stellar Agents: High-Density Kinematic AI & Rendering Framework
+
+## Overview
+**Stellar Agents** is a custom C++20 engine framework engineered from the ground up to demonstrate high-performance Data-Oriented Design (DOD). The primary objective of this architecture is to support massive-scale Artificial Intelligence simulations (up to 2.5 million concurrent entities) alongside a physically-based relativistic rendering pipeline.
+
+This project eschews traditional Object-Oriented Programming (OOP) paradigms in favor of a strict **Structure of Arrays (SoA)** memory layout, ensuring maximum cache coherency for CPU-bound AI logic (such as spatial partitioning and swarm kinematics) while directly interfacing with hardware-instanced GPU buffers.
+
+## Core Architecture & Features
+
+### 1. Data-Oriented Entity Management (AI-Ready)
+*   **SoA Memory Layout:** Entity spatial data (position, rotation, velocity, scale) and material identifiers are stored in contiguous memory arrays. This minimizes L1/L2 cache misses during high-frequency AI updates.
+*   **Zero-Copy GPU Upload:** The C++ SoA buffers align perfectly with the graphics API instance data layouts, allowing $O(1)$ memory mapping directly to VRAM.
+*   **Scalability:** Capable of maintaining rigid 60+ FPS bounds while processing kinematics for 2,500,000 independent agents on a modern CPU architecture (e.g., AMD Ryzen 9000 series).
+
+### 2. Procedural Geometric Generation
+*   **Topological Algorithms:** Dynamic runtime generation of mesh manifolds.
+*   **Subdivided Primitive Noise:** Procedural evaluation of spatial noise to generate irregular, morphologically accurate high-density volumes (e.g., carbonaceous and silicate debris) using flat-shaded vertex unrolling for sharp angular features.
+*   **Vector-Aligned Chassis:** Directional tetrahedral primitives generated for autonomous navigational units.
+
+### 3. Relativistic Graphics Pipeline (Vulkan / bgfx)
+*   **Volumetric Raymarching:** A custom screen-space raymarching fragment shader evaluates non-euclidean light paths around a simulated gravitational singularity (Black Hole), including an accretion disk, Doppler beaming, and a procedural deep-space skybox.
+*   **Screen-Space Gravitational Lensing (Instancing Hack):** Implemented a high-performance optical illusion in the vertex shader. Instead of deforming individual vertices of 2.5 million meshes (which causes geometric tearing), the shader computes a 2D apparent-position shift in clip-space based on the instance's center of mass. This allows massive instanced geometries to optically bend around the singularity with near-zero frame time cost.
+
+## Technology Stack
+*   **Language:** ISO C++20
+*   **Graphics API Abstractor:** bgfx (Targeting Vulkan/DirectX12)
+*   **Shader Language:** BGFX-flavored GLSL/HLSL
+
+## Future Roadmap (AI Integration)
+The current framework establishes the foundational constraints for mass-entity rendering. Upcoming iterations will introduce:
+1.  **Dynamic Spatial Partitioning (Octree / Grid Hash):** $O(\log n)$ neighbor-search algorithms for collision avoidance.
+2.  **Autonomous Kinematics:** Implementation of separation, alignment, and cohesion vectors for emergent swarm behavior.
 
 ============================================================================
-ENGINE ARCHITECTURE & SPATIAL INTEGRATION (CIG FEEDBACK WELCOME)
+ENGINE ARCHITECTURE & SPATIAL INTEGRATION 
 ============================================================================
 This multi-agent simulation core is built from the ground up using strict 
 Data-Oriented Design (DoD) and cache-linear data structures. The underlying 
@@ -105,18 +102,7 @@ large-scale game engines.
 
 [PRODUCTION ROADMAP: CONCEPT & ARCHITECTURE PLANNED]
 ----------------------------------------------------------------------------
-* Hierarchical Nested Grids & Local Reference Frames [PLANNED]: 
-  Designing the decoupling of local entity transforms from macroscopic world-
-  space coordinate matrices. The architecture is planned to localize transient 
-  coordinate spaces, mapping dense agent sub-populations to isolated spatial 
-  layers—conceptually parallel to modern Nested Physics Grids.
-
-* Floating-Point Jitter Mitigation at Scale [RESEARCHSTAGE / PLANNED]: 
-  Evaluating coordinate-shifting mechanics derived from high-performance cluster 
-  computing to isolate local-space calculations from massive origin drifts. 
-  The goal is to actively prevent vertex jittering and float-precision loss 
-  over extreme world-space distances.
-
+Spatial Partitioning.
 
 ============================================================================
 Domain: Physics Evolution Loop / Agent Deallocation Thresholds

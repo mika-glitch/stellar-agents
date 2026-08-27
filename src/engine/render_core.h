@@ -1,47 +1,62 @@
+// ============================================================================
+// [Core/Graphics] VULKAN/BGFX RENDERING PIPELINE INTERFACE
+// Description: Declares the rendering core subsystem responsible for 
+//              volumetric raymarching of gravitational lensing effects 
+//              and particle dispatcher pipelines streaming from Structure 
+//              of Arrays (SoA) memory arenas.
+// Standard: ISO C++20
+// ============================================================================
 #ifndef RENDER_CORE_H
 #define RENDER_CORE_H
 
-#include "raylib.h"
+#include <bgfx/bgfx.h>
 #include "cads/environment_matrix.h"
+#include <cstdint>
 
 namespace stellar_agents {
 
-    // ============================================================================
-    // HARDWARE GRAPHICS DISPATCH ENGINE (UNIFIED AGENT SHADER PIPELINE)
-    // Standard compliance: Enforces a zero-allocation GPU streaming architecture.
-    // Orchestrates the centralized vertex/fragment pipeline to compute relativistic 
-    // lensing and agent geometry directly inside the silicon registers.
-    // ============================================================================
+    /**
+     * @brief Core Rendering Subsystem.
+     * @details Manages shader programs, vertex layouts, uniform handles, and
+     *          scene composition passes for both background volumetric effects
+     *          and particle rendering.
+     */
     class RenderCore final {
     private:
-        // Unified shader program driving both volumetric fields and agent projections
-        Shader unified_agent_shader{ 0 };
+        // Raymarching Pipeline Resources
+        bgfx::ProgramHandle uniform_agent_program{ BGFX_INVALID_HANDLE };
+        bgfx::VertexBufferHandle m_fullscreenVbh{ BGFX_INVALID_HANDLE };
 
-        // Core hardware uniform registry indices
-        int32_t uniform_time{ 0 };
-        int32_t uniform_resolution{ 0 };
-        int32_t uniform_cam_pos{ 0 };
-        int32_t uniform_cam_target{ 0 };
+        // Point-Particle Pipeline Resources for Debris and Fleet Nodes
+        bgfx::ProgramHandle m_particle_program{ BGFX_INVALID_HANDLE };
+        bgfx::VertexLayout  m_particle_layout;
 
-        // Singularity metrics to feed the hardware lensing logic inside the vertex pipeline
-        int32_t uniform_hole_pos{ 0 };
-        int32_t uniform_hole_mass{ 0 };
-        int32_t uniform_event_horizon{ 0 };
+        // Shader Uniform Handles
+        bgfx::UniformHandle uniform_time{ BGFX_INVALID_HANDLE };
+        bgfx::UniformHandle uniform_resolution{ BGFX_INVALID_HANDLE };
+        bgfx::UniformHandle uniform_cam_pos{ BGFX_INVALID_HANDLE };
+        bgfx::UniformHandle uniform_cam_target{ BGFX_INVALID_HANDLE };
+        bgfx::UniformHandle uniform_hole_pos{ BGFX_INVALID_HANDLE };
+
+        bgfx::UniformHandle s_uniform_obj1{ BGFX_INVALID_HANDLE };
+        bgfx::UniformHandle s_uniform_obj2{ BGFX_INVALID_HANDLE };
+        bgfx::UniformHandle s_uniform_obj3{ BGFX_INVALID_HANDLE };
 
     public:
         RenderCore() noexcept;
         ~RenderCore();
 
-        // Prevent unsafe compilation copy operations over hardware resource handles
         RenderCore(const RenderCore&) = delete;
         RenderCore& operator=(const RenderCore&) = delete;
+        RenderCore(RenderCore&&) noexcept = delete;
+        RenderCore& operator=(RenderCore&&) noexcept = delete;
 
-        // ============================================================================
-        // UNIFIED UNIFIED BLIT OPERATOR
-        // Direct hardware pipeline streaming layout. Takes the flat CPU readable state 
-        // array, injects it into VRAM, and triggers parallel GPU shader execution.
-        // ============================================================================
-        void draw_composite_scene(const Camera3D& p_camera, const EnvironmentMatrix& p_matrix) const noexcept;
+        /**
+         * @brief Executes the composite scene rendering passes.
+         * @param p_camera_data Pointer to the 6-DOF camera transformation data.
+         * @param p_matrix Reference to the environment SoA matrix buffer.
+         */
+        void draw_composite_scene(const void* p_camera_data, const EnvironmentMatrix& p_matrix) const noexcept;
     };
 
 } // namespace stellar_agents

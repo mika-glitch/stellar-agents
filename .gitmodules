@@ -1,0 +1,15 @@
+[submodule "ext/glfw"]
+	path = ext/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "ext/bgfx"]
+	path = ext/bgfx
+	url = https://github.com/bkaradzic/bgfx.git
+[submodule "ext/bx"]
+	path = ext/bx
+	url = https://github.com/bkaradzic/bx.git
+[submodule "ext/bimg"]
+	path = ext/bimg
+	url = https://github.com/bkaradzic/bimg.git
+[submodule "ext/bgfx.cmake"]
+	path = ext/bgfx.cmake
+	url = https://github.com/bkaradzic/bgfx.cmake.git
