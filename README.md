@@ -39,10 +39,10 @@ By completely bypassing traditional Object-Oriented Programming (OOP) and virtua
 
 ## 📊 Performance Benchmark Profile
 
-* **Active Entities:** 2,500,000 concurrent particles/vessels.
+* **Active Entities:** Multi-million scale simulation payload (2.5M+ concurrent kinematic nodes).
 * **Environment:** Orbital mechanics around a central Kerr/Schwarzschild black hole barycenter.
 * **Hardware Target:** Multi-core x86-64 consumer silicon (optimized via `/arch:AVX2 /fp:fast`).
-* **Frame Rate:** Stable real-time execution bounds.
+* **Frame Rate:** Real-time interactive execution bounds under full relativistic compute load.
 
 ---
 
@@ -130,9 +130,7 @@ The current framework establishes the foundational constraints for mass-entity r
 * **Spatial Partitioning & Environment Matrix:** 
   Advanced grid-based spatial partitioning architectures for localized neighborhood querying and non-linear environment feedback routing at scale.
 
-============================================================================
 Domain: Physics Evolution Loop / Agent Deallocation Thresholds
-============================================================================
 
 1. THE EVENT HORIZON (KILL TRIGGER)
    - Physics: Absolute mathematical boundary where escape velocity = c.
@@ -147,9 +145,8 @@ Domain: Physics Evolution Loop / Agent Deallocation Thresholds
    - Core Loop: Ships remain fully rendered and processed through the plunge.
    - Deallocation Gate: Explicit destruction occurs only upon crossing Rs.
 
-============================================================================
+
 PROJECT: STELLAR-AGENTS — CORE REFERENCE PARADIGM: COORDINATE TOPOLOGY
-============================================================================
 
 1. SIMULATION CHALLENGES AND SOLUTIONS
    - Real-world astronomical coordinates measured in meters or kilometers 
