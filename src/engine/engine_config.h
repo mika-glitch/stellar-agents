@@ -58,9 +58,9 @@ namespace config {
 
     namespace simulation {
         // Data-Oriented Array Bounds (SoA Capacities)
-        inline constexpr uint64_t total_asteroids = 5000000 + 4 ;
-        inline constexpr uint64_t total_ships = 1 + 4;
-
+        inline constexpr uint64_t total_asteroids = 1500000 + 4 ;
+        inline constexpr uint64_t total_ships = 1000 + 4;
+        
         // Total capacity includes standard agents + 4 primary gravitational attractors
         inline constexpr uint64_t total_agent_capacity = total_asteroids + total_ships + 4;
 

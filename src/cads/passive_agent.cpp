@@ -1,21 +1,30 @@
 // ============================================================================
-// [Core/Simulation] PASSIVE AGENT STATE MUTATOR (STRUCTURE OF ARRAYS)
-// Description: Evaluates geodesic trajectories within gravitational fields 
-//              and handles horizon culling or dynamic disc respawning.
-//              Adapted from original passive logic.
+// [Core/Simulation] PASSIVE KINEMATIC AGENT MUTATOR (STRUCTURE OF ARRAYS)
+// Description: Evaluates boundary conditions for non-reactive kinematic entities.
+//              Delegates primary integration (Euler-Cromer) and gravitational
+//              acceleration to the core physics execution thread to maintain
+//              instruction cache linearity.
 // Standard: ISO C++20
 // ============================================================================
 #include "engine/engine_config.h"
 #include "cads/environment_matrix.h"
 #include <cmath>
+#include <cstdint>
 
 namespace stellar_agents {
 
+    /**
+     * Fast pseudo-random float generator based on LCG hashing algorithms.
+     */
     [[nodiscard]] static inline float FastHashToFloatSoA(uint32_t& seed) noexcept {
         seed = seed * 1664525u + 1013904223u;
         return static_cast<float>(seed & 0x00FFFFFFu) / static_cast<float>(0x01000000u);
     }
 
+    /**
+     * Reinitializes an entity's kinematic state to form a stable Keplerian orbit
+     * within the primary accretion plane.
+     */
     static inline void RespawnInPlasmaDiskSoA(EnvironmentBuffersSoA& buffer, uint64_t i) noexcept {
         uint32_t seed = buffer.agent_id[i] ^ 0x9E3779B9u;
 
@@ -52,62 +61,29 @@ namespace stellar_agents {
         float field_acc_x, float field_acc_y, float field_acc_z,
         float delta_time) noexcept
     {
+        // Execution guard for inactive entities to prevent processing deprecated state data
         if (buffer.is_active[i] == 0) [[unlikely]] {
             return;
         }
 
-        float px = buffer.pos_x[i];
-        float py = buffer.pos_y[i];
-        float pz = buffer.pos_z[i];
+        const float px = buffer.pos_x[i];
+        const float py = buffer.pos_y[i];
+        const float pz = buffer.pos_z[i];
 
-        float vx = buffer.vel_x[i];
-        float vy = buffer.vel_y[i];
-        float vz = buffer.vel_z[i];
-
-        float dist_sq = px * px + py * py + pz * pz;
-
+        const float dist_sq = px * px + py * py + pz * pz;
         constexpr float max_system_radius_sq = 120.0f * 120.0f;
-        constexpr float event_horizon_sq = config::physics::rs_horizon * config::physics::rs_horizon;
 
         /**
-         * Event Horizon and Boundary Culling Check
-         * Formula: $r^2 \le r_s^2$ (Schwarzschild capture threshold)
+         * Outer Boundary Culling Evaluation
+         * Triggers entity recycling if spatial coordinates exceed the maximum simulation domain.
          */
-        if (dist_sq <= event_horizon_sq || dist_sq > max_system_radius_sq) [[unlikely]] {
+        if (dist_sq > max_system_radius_sq) [[unlikely]] {
             RespawnInPlasmaDiskSoA(buffer, i);
-            return;
         }
 
-        /**
-         * Newtonian Gravitational Acceleration Field
-         * Formula: $\vec{a} = -\frac{G \cdot M}{|\vec{r}|^3} \vec{r}$
-         */
-        float dist = std::sqrt(dist_sq + 0.0001f);
-        float gravity_magnitude = config::physics::primary_attractor_runtime_mass / (dist_sq + 0.0001f);
-
-        float norm_x = -px / dist;
-        float norm_y = -py / dist;
-        float norm_z = -pz / dist;
-
-        float total_acc_x = field_acc_x + (norm_x * gravity_magnitude);
-        float total_acc_y = field_acc_y + (norm_y * gravity_magnitude);
-        float total_acc_z = field_acc_z + (norm_z * gravity_magnitude);
-
-        vx += total_acc_x * delta_time;
-        vy += total_acc_y * delta_time;
-        vz += total_acc_z * delta_time;
-
-        px += vx * delta_time;
-        py += vy * delta_time;
-        pz += vz * delta_time;
-
-        buffer.pos_x[i] = px;
-        buffer.pos_y[i] = py;
-        buffer.pos_z[i] = pz;
-
-        buffer.vel_x[i] = vx;
-        buffer.vel_y[i] = vy;
-        buffer.vel_z[i] = vz;
+        // NOTE: Newtonian gravitation and explicit kinematic integration are intentionally 
+        // omitted here. They are executed centrally by the concurrent worker threads 
+        // to maintain uniform SoA pipeline efficiency.
     }
 
 } // namespace stellar_agents

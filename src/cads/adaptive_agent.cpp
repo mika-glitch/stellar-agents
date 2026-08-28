@@ -1,27 +1,28 @@
 // ============================================================================
-// [Core/Simulation] ADAPTIVE AGENT STATE MUTATOR (STRUCTURE OF ARRAYS)
-// Description: Computes homeostatic decision-making and thruster adjustments 
-//              for autonomous navigation entities within gravitational boundaries.
-//              Implements a discrete 3-phase finite state machine for routing.
+// [Core/Simulation] ADAPTIVE KINEMATIC AGENT MUTATOR (STRUCTURE OF ARRAYS)
+// Description: Computes homeostatic decision-making and propulsive vectors 
+//              for autonomous navigation entities. 
+//              Delegates spatial integration to the core physics worker loop.
 // Standard: ISO C++20
 // ============================================================================
 #include "engine/engine_config.h"
 #include "cads/environment_matrix.h"
 #include <cmath>
+#include <cstdint>
 
 namespace stellar_agents {
 
-    enum class ShipClassSoA : uint8_t {
-        LIGHT_INTERCEPTOR = 0,
-        HEAVY_CORVETTE = 1,
-        CAPITAL_CRUISER = 2
+    enum class KinematicMassClassSoA : uint8_t {
+        CLASS_LIGHT = 0,
+        CLASS_MEDIUM = 1,
+        CLASS_HEAVY = 2
     };
 
     // Evaluates propulsion magnitude limits mapped to structural mass classes.
     [[nodiscard]] static constexpr float GetThrustPowerSoA(uint32_t agent_id) noexcept {
-        ShipClassSoA type = static_cast<ShipClassSoA>(agent_id % 3);
-        if (type == ShipClassSoA::HEAVY_CORVETTE)  return 7.5f;
-        if (type == ShipClassSoA::CAPITAL_CRUISER) return 24.0f;
+        KinematicMassClassSoA type = static_cast<KinematicMassClassSoA>(agent_id % 3);
+        if (type == KinematicMassClassSoA::CLASS_MEDIUM) return 7.5f;
+        if (type == KinematicMassClassSoA::CLASS_HEAVY)  return 24.0f;
         return 4.2f;
     }
 
@@ -34,7 +35,7 @@ namespace stellar_agents {
     void MutateAdaptiveAgentSoA(
         EnvironmentBuffersSoA& buffer,
         uint64_t i,
-        float field_acc_x, float field_acc_y, float field_acc_z,
+        [[maybe_unused]] float field_acc_x, [[maybe_unused]] float field_acc_y, [[maybe_unused]] float field_acc_z,
         float target_planet_x, float target_planet_y, float target_planet_z,
         float execution_time,
         float delta_time) noexcept
@@ -44,9 +45,9 @@ namespace stellar_agents {
         }
 
         // 1. Extract kinematic state from memory arena
-        float px = buffer.pos_x[i];
-        float py = buffer.pos_y[i];
-        float pz = buffer.pos_z[i];
+        const float px = buffer.pos_x[i];
+        const float py = buffer.pos_y[i];
+        const float pz = buffer.pos_z[i];
 
         float vx = buffer.vel_x[i];
         float vy = buffer.vel_y[i];
@@ -59,7 +60,7 @@ namespace stellar_agents {
         float ty = buffer.target_pos_y[i];
         float tz = buffer.target_pos_z[i];
 
-        // Initialization safety catch (if spawned without an objective)
+        // Initialization safety catch (assign default central objective)
         if (tx == 0.0f && ty == 0.0f && tz == 0.0f) [[unlikely]] {
             tx = config::astrodynamics::inner_body_pos[0];
             ty = config::astrodynamics::inner_body_pos[1];
@@ -67,10 +68,10 @@ namespace stellar_agents {
         }
 
         // Compute spatial delta and distance to objective
-        float dx = tx - px;
-        float dy = ty - py;
-        float dz = tz - pz;
-        float dist_target = std::sqrt(dx * dx + dy * dy + dz * dz);
+        const float dx = tx - px;
+        const float dy = ty - py;
+        const float dz = tz - pz;
+        const float dist_target = std::sqrt(dx * dx + dy * dy + dz * dz);
 
         constexpr float convergence_radius = 8.0f;
         constexpr float loiter_duration = 15.0f;
@@ -87,40 +88,39 @@ namespace stellar_agents {
             }
         }
         else if (state == 1) {
-            // Phase 1: Localized Station-Keeping / Loitering
+            // Phase 1: Localized Station-Keeping
             timer -= delta_time;
             if (timer <= 0.0f) {
                 state = 2;
-                // Update objective to Spatial Portal Manifold
+                // Update objective to Spatial Gateway Manifold
                 tx = config::astrodynamics::gateway_node_pos[0];
                 ty = config::astrodynamics::gateway_node_pos[1];
                 tz = config::astrodynamics::gateway_node_pos[2];
             }
         }
         else if (state == 2) {
-            // Phase 2: Return Transit to Gateway
+            // Phase 2: Return Transit
             if (dist_target < convergence_radius) {
                 state = 0;
 
                 // Stochastic routing decision for next operational cycle
                 uint32_t r_seed = buffer.agent_id[i] ^ static_cast<uint32_t>(execution_time * 1000.0f);
-                float rand_val = FastHashToFloatSoA(r_seed);
+                const float rand_val = FastHashToFloatSoA(r_seed);
 
                 if (rand_val < 0.33f) {
-                    // Target Inner Compact Mass Node (Planet 1)
+                    // Target Inner Compact Mass Node
                     tx = buffer.pos_x[1]; ty = buffer.pos_y[1]; tz = buffer.pos_z[1];
                 }
                 else if (rand_val < 0.66f) {
-                    // Target Outer Volumetric Mass Node (Planet 2)
+                    // Target Outer Volumetric Mass Node
                     tx = buffer.pos_x[2]; ty = buffer.pos_y[2]; tz = buffer.pos_z[2];
                 }
                 else {
-                    // Target Synthetic Geodesic Coordinate (Asteroid Field)
-                    // Avoids O(N) memory scans by mathematically generating a valid intercept point.
-                    float angle = FastHashToFloatSoA(r_seed + 1) * 6.28318530718f;
-                    float r_min = config::simulation::asteroid_spawn_radius_min;
-                    float r_max = config::simulation::asteroid_spawn_radius_max;
-                    float radius = r_min + FastHashToFloatSoA(r_seed + 2) * (r_max - r_min);
+                    // Target Synthetic Geodesic Coordinate (Debris Field)
+                    const float angle = FastHashToFloatSoA(r_seed + 1) * 6.28318530718f;
+                    const float r_min = config::simulation::asteroid_spawn_radius_min;
+                    const float r_max = config::simulation::asteroid_spawn_radius_max;
+                    const float radius = r_min + FastHashToFloatSoA(r_seed + 2) * (r_max - r_min);
 
                     tx = radius * std::cos(angle);
                     ty = (FastHashToFloatSoA(r_seed + 3) * 2.0f - 1.0f) * 0.5f;
@@ -130,16 +130,16 @@ namespace stellar_agents {
         }
 
         // ====================================================================
-        // PROPULSION & KINEMATIC INTEGRATION
+        // PROPULSION VECTORS (KINEMATIC MUTATION)
         // ====================================================================
 
-        uint32_t agent_id = buffer.agent_id[i];
-        float base_thrust = GetThrustPowerSoA(agent_id);
+        const uint32_t agent_id = buffer.agent_id[i];
+        const float base_thrust = GetThrustPowerSoA(agent_id);
         float thrust_x = 0.0f, thrust_y = 0.0f, thrust_z = 0.0f;
 
-        float dir_x = (dist_target > 0.001f) ? (dx / dist_target) : 0.0f;
-        float dir_y = (dist_target > 0.001f) ? (dy / dist_target) : 0.0f;
-        float dir_z = (dist_target > 0.001f) ? (dz / dist_target) : 0.0f;
+        const float dir_x = (dist_target > 0.001f) ? (dx / dist_target) : 0.0f;
+        const float dir_y = (dist_target > 0.001f) ? (dy / dist_target) : 0.0f;
+        const float dir_z = (dist_target > 0.001f) ? (dz / dist_target) : 0.0f;
 
         if (state == 0 || state == 2) {
             /**
@@ -155,11 +155,11 @@ namespace stellar_agents {
         }
         else {
             // Loitering: Executing orbital weave maneuvers to maintain kinetic stability
-            float perp_x = -dir_z;
-            float perp_y = dir_y * 0.5f;
-            float perp_z = dir_x;
+            const float perp_x = -dir_z;
+            const float perp_y = dir_y * 0.5f;
+            const float perp_z = dir_x;
 
-            float dynamic_offset = std::sin(execution_time * 3.0f + agent_id) * 0.8f;
+            const float dynamic_offset = std::sin(execution_time * 3.0f + static_cast<float>(agent_id)) * 0.8f;
 
             thrust_x = (dir_x * base_thrust * 0.4f) + (perp_x * base_thrust * 1.5f * dynamic_offset) - (vx * 0.4f);
             thrust_y = (dir_y * base_thrust * 0.4f) + (perp_y * base_thrust * 1.5f * dynamic_offset) - (vy * 0.4f);
@@ -170,39 +170,28 @@ namespace stellar_agents {
         // RELATIVISTIC EMERGENCY OVERRIDE
         // ====================================================================
 
-        float range_to_bh = std::sqrt(px * px + py * py + pz * pz);
-        float emergency_threshold = config::physics::rs_horizon * 5.0f;
+        const float range_to_bh = std::sqrt(px * px + py * py + pz * pz);
+        constexpr float emergency_threshold = config::physics::rs_horizon * 5.0f;
 
         if (range_to_bh < emergency_threshold) [[unlikely]] {
-            float inv_range = (range_to_bh > 0.0001f) ? (1.0f / range_to_bh) : 0.0f;
-            float escape_x = -px * inv_range;
-            float escape_y = -py * inv_range;
-            float escape_z = -pz * inv_range;
+            const float inv_range = (range_to_bh > 0.0001f) ? (1.0f / range_to_bh) : 0.0f;
+            const float escape_x = -px * inv_range;
+            const float escape_y = -py * inv_range;
+            const float escape_z = -pz * inv_range;
 
-            float critical_thrust = base_thrust * 6.0f;
+            const float critical_thrust = base_thrust * 6.0f;
             thrust_x += escape_x * critical_thrust;
             thrust_y += escape_y * critical_thrust;
             thrust_z += escape_z * critical_thrust;
         }
 
-        // Apply external gravitational field tensors and local propulsion
-        float total_acc_x = field_acc_x + thrust_x;
-        float total_acc_y = field_acc_y + thrust_y;
-        float total_acc_z = field_acc_z + thrust_z;
+        // Apply ONLY local propulsion to velocity. 
+        // External gravitational fields and spatial integration are handled centrally.
+        vx += thrust_x * delta_time;
+        vy += thrust_y * delta_time;
+        vz += thrust_z * delta_time;
 
-        vx += total_acc_x * delta_time;
-        vy += total_acc_y * delta_time;
-        vz += total_acc_z * delta_time;
-
-        px += vx * delta_time;
-        py += vy * delta_time;
-        pz += vz * delta_time;
-
-        // 3. Write integrated state back to memory arena
-        buffer.pos_x[i] = px;
-        buffer.pos_y[i] = py;
-        buffer.pos_z[i] = pz;
-
+        // 3. Write integrated velocity and FSM state back to memory arena
         buffer.vel_x[i] = vx;
         buffer.vel_y[i] = vy;
         buffer.vel_z[i] = vz;

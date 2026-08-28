@@ -16,7 +16,6 @@ namespace stellar_agents {
      * @brief 3-Dimensional Cartesian Vector Structure.
      * @details Provides a lightweight mathematical representation for spatial
      * coordinates and kinematic velocity vectors in 3D Euclidean space.
-     * Formula: $\vec{v} = x\hat{i} + y\hat{j} + z\hat{k}$
      */
     struct Vector3 {
         float x{ 0.0f };
@@ -42,14 +41,18 @@ namespace stellar_agents {
     enum class AgentType : uint8_t {
         ATTRACTOR = 0,
         PASSIVE = 1,
-        ADAPTIVE = 2
+        ADAPTIVE = 2, // Grundlegende Adaptive-Agenten Basis
+        CIVILIAN = 3, // Transitsysteme / Flucht-Logik
+        MINER = 4, // Ressourcen-Abbau in Asteroidenfeldern
+        PIRATE = 5, // Jagd auf Miner und Civilians
+        MARINE = 6  // Patrouille / Abfangen feindlicher Piraten
     };
 
     /**
      * @brief Host-Side Entity Staging Payload.
      * @details Refactored from the legacy contiguous agent footprint to act
      * as a temporary configuration vessel during initialization, prior to scattering
-     * attributes into parallel Structure of Arrays (SoA) memory arenas.
+     * attributes into parallel Structure of Arrays (SoA) memory arenas[cite: 7].
      */
     struct AgentStagingPayload {
         Vector3 position{ 0.0f, 0.0f, 0.0f };
